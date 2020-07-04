@@ -1,0 +1,25 @@
+# elisp byte code
+*.elc
+
+# recovery and backup directories
+auto-save-list/
+backups/
+
+# personal user config/customization files
+config
+ignore-customizations.el
+
+# other directories
+.cache/
+.extension/
+transient/
+workspace/
+
+# other files
+.dap-breakpoints
+.lsp-session-v1
+.org-id-locations
+bookmarks
+projectile-bookmarks.eld
+recentf
+tramp

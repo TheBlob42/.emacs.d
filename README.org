@@ -1,0 +1,49 @@
+* My Emacs settings
+  This is my ever changing set of Emacs configuration
+  
+  - Vim keybindings using [[https://github.com/emacs-evil/evil][EVIL]]
+  - remapped commands [[https://www.spacemacs.org/][Spacemacs]] style
+  - IDE like features via [[https://github.com/emacs-lsp/lsp-mode][lsp-mode]]
+  - custom functions for Gradlew
+  - [[https://github.com/bastibe/org-journal][org-journal]] for daily tasks
+  - ...
+  
+* Installation
+  #+begin_quote
+  Emacs version 27 or higher is required to ensure all features are working properly
+  #+end_quote
+
+  Simply clone this repository to ~~/.emacs.d~
+  #+begin_src shell
+  git clone https://github.com/TheBlob42/.emacs.d.git
+  #+end_src
+  
+** Additional dependencies
+   For some features it is required to install additional dependencies
+   
+*** The silver searcher
+    For file searching I prefer to use [[https://github.com/ggreer/the_silver_searcher][The Silver Searcher]].
+
+*** Language Servers
+    For lsp-mode to work you need the required language servers. Some will be installed automatically when you first visit a file of the specific type (e.g. Java) others need to be installed manually (e.g. Rust).
+
+    Check [[https://emacs-lsp.github.io/lsp-mode/page/languages/][here]] to see which languages are supported and how to install the required language servers for them.
+
+*** JSON schema validation
+    If you want to use the custom function for JSON schema validation (~SPC m v~ in /json-mode/) you need to install a proper cli tool, make it available in your PATH and put the corresponding command with placeholders in your ~config~ file (see ~config.sample~ for examples).
+
+    The following tools have been tested to work properly:
+    - [[https://github.com/ajv-validator/ajv][ajv]] (recommended)
+    - [[https://python-jsonschema.readthedocs.io/en/stable/][jsonschema]]
+ 
+* Configuration
+  For easy usage on different machines certain options can be configured in ~/.emacs.d/config~ (see ~config.sample~ for an example file)
+
+  | Option          | Description                                                                        | Default              | Required |
+  |-----------------+------------------------------------------------------------------------------------+----------------------+----------|
+  | org-roam-dir    | Directory for your [[https://github.com/org-roam/org-roam][org-roam]] files                                                  | ~/org-roam           | no       |
+  | org-journal-dir | Directory for your [[https://github.com/bastibe/org-journal][org-journal]] files                                               | ~/Documents/journal/ | no       |
+  | dart-sdk        | Path to your [[https://dart.dev/][Dart]] SDK                                                              | -                    | no       |
+  | flutter-sdk     | Path to your [[https://flutter.dev/][Flutter]] SDK                                                           | -                    | no       |
+  | catalina-path   | Path to your local [[http://tomcat.apache.org/][Tomcat]] folder, to start and debug your Tomcat from within Emacs | -                    | no       |
+  | jsonschema-cmd  | Custom command with placeholders for JSON validation                               | -                    | no       |

@@ -1,0 +1,14 @@
+# directories for the usage with org-roam and org-journal
+org-roam-dir:
+org-journal-dir:
+
+# directories for dart/flutter development
+dart-sdk:
+flutter-sdk:
+
+# path to your local tomcat folder
+catalina-path:
+
+# shell command for JSON validation
+# (e.g. "ajv validate -s <schema> -d <json>" or "jsonschema -i <json> <schema>")
+jsonschema-cmd:
