@@ -1418,6 +1418,8 @@ _N_: previous error
   :custom
   (org-hide-emphasis-markers t)
   (org-todo-keywords '((sequence "TODO" "PROCESSING" "WAITING" "|" "DONE" "CANCELED")))
+  ;; refile target all level 1-2 headings in the same file
+  (org-refile-targets '((nil :maxlevel . 2)))
   :general
   ;; add 'org-capture' keybinding to the leader-key
   (my/leader-key
@@ -1430,6 +1432,7 @@ _N_: previous error
     "m" '(org-ctrl-c-ctrl-c :which-key "ctrl-c ctrl-c")
     "TAB" '(my/org-show-current-heading-tidily :which-key "collapse others")
     "o" '(org-open-at-point :which-key "open at point")
+    "r" '(org-refile :which-key "refile heading")
     ;; Toggles
     "T" '(:ignore t :which-key "Toggle")
     "Ti" 'my/org-toggle-inline-images
