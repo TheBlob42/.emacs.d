@@ -1745,7 +1745,9 @@ _S_: slurp backward
 
 (use-package lsp-mode
   :commands (lsp lsp-deferred)
-  :custom (lsp-enable-file-watchers nil) ; disabe file watchers to prevent warning about too many files
+  :custom
+  (lsp-enable-file-watchers nil)       ; disabe file watchers to prevent warning about too many files
+  (lsp-headerline-breadcrumb-enable t) ; show breadcrumbs in headerline
   :init
   (defmacro my/lsp-keybindings (keymap name &rest additional-bindings)
     "Set the default LSP keybindings for the given 'major-mode' KEYMAP.
