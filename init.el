@@ -2200,7 +2200,7 @@ If multiple candidates occure, show a seletion via ivy"
 (use-package lsp-dart
   :hook ((dart-mode . lsp-deferred))
   :custom
-  (lsp-dart-project-sdk-dir (my//get-value-from-config "dart-sdk"))
+  (lsp-dart-project-sdk-dir (my//get-value-from-config "dart-sdk" nil))
   (lsp-dart-suggest-from-unimported-libraries nil)
   :init
   (my/lsp-keybindings 'dart-mode-map "Dart"
@@ -2213,7 +2213,7 @@ If multiple candidates occure, show a seletion via ivy"
   
 (use-package flutter
   :after lsp-dart
-  :custom (flutter-sdk-path (my//get-value-from-config "flutter-sdk"))
+  :custom (flutter-sdk-path (my//get-value-from-config "flutter-sdk" nil))
   :general
   (my/major-mode-leader-key
     :keymaps 'dart-mode-map
