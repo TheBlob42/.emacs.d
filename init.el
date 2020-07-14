@@ -1318,10 +1318,11 @@ It does so without changing the current state and point position."
   :config
   (defhydra hydra-flycheck (:hint nil)
     "
-^Navigation^         ^List^
+^Navigation^         ^Other^
 ^^^^--------------------------------
 _n_: next error      _l_: error list
 _N_: previous error
+_z_: center
 ^^^^--------------------------------
 [_q_]: quit
 ^^^^--------------------------------
@@ -1329,6 +1330,7 @@ _N_: previous error
     ("n" flycheck-next-error)
     ("N" flycheck-previous-error)
     ("l" flycheck-list-errors :exit t)
+    ("z" evil-scroll-line-to-center)
     ("q" nil :color blue)))
 
 ;;;* snippets
