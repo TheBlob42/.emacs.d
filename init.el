@@ -1237,9 +1237,8 @@ It does so without changing the current state and point position."
 ;; file explorer for emacs
 (use-package neotree
   :custom
-  ;; jump to current file when opening neotree
-  (neo-smart-open t)
-  (neo-window-fixed-size nil)
+  (neo-smart-open t)          ; jump to current file when opening neotree
+  (neo-window-fixed-size nil) ; unset this to enable size adaptions
   :general
   (my/leader-key
     "n" '(neotree-toggle :which-key my//neotree-which-key-replacement))
@@ -1253,7 +1252,7 @@ It does so without changing the current state and point position."
 
   ;; fix for the doom theme neotree configuration
   (defun my/neotree-select-up-node ()
-    "Fix the neotree doom-theme config to jump to the current root dir when if needed."
+    "Fix the neotree doom-theme config to jump to the current root dir if needed."
     (interactive)
     (let ((last-line-num (line-number-at-pos)))
       (neotree-select-up-node)
