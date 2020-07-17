@@ -1242,8 +1242,15 @@ It does so without changing the current state and point position."
   (neo-window-fixed-size nil)
   :general
   (my/leader-key
-    "n" '(neotree-toggle :which-key "neotree"))
+    "n" '(neotree-toggle :which-key my//neotree-which-key-replacement))
   :config
+  (defun my//neotree-which-key-replacement (entry)
+    "Show matching which key description depending on the current state of neotree"
+    (let ((key (car entry)))
+      (if (get-buffer-window " *NeoTree*" 'visible)
+	`(,key . "neotree close")
+	`(,key . "neotree open"))))
+
   ;; fix for the doom theme neotree configuration
   (defun my/neotree-select-up-node ()
     "Fix the neotree doom-theme config to jump to the current root dir when if needed."
