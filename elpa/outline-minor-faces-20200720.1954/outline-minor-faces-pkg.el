@@ -1,0 +1,2 @@
+;;; Generated package description from /home/tobias_voelzel/.blank.emacs.d/elpa/outline-minor-faces-20200720.1954/outline-minor-faces.el  -*- no-byte-compile: t -*-
+(define-package "outline-minor-faces" "20200720.1954" "Headings faces for outline-minor-mode" '((emacs "25.1")) :commit "cb9c529bb992c6f60b054caf4e993b03c7b3ba9e" :keywords '("outlines") :authors '(("Jonas Bernoulli" . "jonas@bernoul.li")) :maintainer '("Jonas Bernoulli" . "jonas@bernoul.li") :url "https://github.com/tarsius/bicycle")
