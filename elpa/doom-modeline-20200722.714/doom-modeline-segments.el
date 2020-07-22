@@ -302,7 +302,8 @@ Uses `all-the-icons-material' to fetch the icon."
                    (t ""))
              (when (or (buffer-narrowed-p)
                        (and (bound-and-true-p fancy-narrow-mode)
-                            (fancy-narrow-active-p)))
+                            (fancy-narrow-active-p))
+                       (bound-and-true-p dired-narrow-mode))
                (doom-modeline-buffer-file-state-icon
                 "vertical_align_center" "↕" "><" 'doom-modeline-warning)))))))
 
@@ -475,9 +476,21 @@ mouse-1: Previous buffer\nmouse-3: Next buffer"
 (doom-modeline-def-segment indent-info
   "Displays the indentation information."
   (when doom-modeline-indent-info
-    (propertize (format " %s %d "
-                        (if indent-tabs-mode "TAB" "SPC") tab-width)
-                'face (if (doom-modeline--active) 'mode-line 'mode-line-inactive))))
+    (let ((do-propertize
+           (lambda (mode size)
+             (propertize
+              (format " %s %d " mode size 'face
+                      (if (doom-modeline--active) 'mode-line 'mode-line-inactive))))))
+      (if indent-tabs-mode
+          (funcall do-propertize "TAB" tab-width)
+        (let ((lookup-var
+               (seq-find (lambda (var)
+                           (and var (boundp var) (symbol-value var)))
+                         (cdr (assoc major-mode doom-modeline-indent-alist)) nil)))
+          (funcall do-propertize "SPC"
+                   (if lookup-var
+                       (symbol-value lookup-var)
+                     tab-width)))))))
 
 ;;
 ;; Remote host

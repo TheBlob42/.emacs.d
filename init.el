@@ -1087,11 +1087,6 @@ It does so without changing the current state and point position."
   :after (ivy counsel)
   :commands ivy-wgrep-change-to-wgrep-mode
   :general
-  (my/major-mode-leader-key
-    :keymaps 'ivy-occur-mode-map
-    :major-modes t
-    "" '(:ignore t :which-key "Ivy Occur")
-    "y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer"))
   ;; add major mode bindings to switch easily to wgrep mode
   (my/major-mode-leader-key
     :keymaps 'ivy-occur-grep-mode-map
@@ -1099,7 +1094,19 @@ It does so without changing the current state and point position."
     "" '(:ignore t :which-key "Ivy Occur")
     "y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer")
     "w" '(ivy-wgrep-change-to-wgrep-mode :which-key "enable wgrep"))
+  ;; TODO does not work...
+  (my/major-mode-leader-key
+    :keymaps 'wgrep-mode-map
+    ;; :major-modes 'ivy-occur-mode
+    "" '(:ignore t :which-key "Wgrep")
+    "o" 'evil-align-center)
   :config
+  ;; (defun my//ivy-occur-which-key-replacement (entry)
+  ;;   (let ((key (car entry)))
+  ;;     (if (-filter (-partial 'eq 'wgrep-mode-map) (current-local-map)))
+  ;;     "sdf" nil
+  ;;     ))
+
   (defun my/copy-content-to-new-buffer ()
     "Copy content of the current buffer into a new one and kill the current."
     (interactive)
@@ -1840,6 +1847,13 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
       (goto-char pos)
       (lsp-find-definition))))
 
+;; (defun lsp-set-cnfg ()
+;;   ;; (let ((config (list :java.import.gradle.wrapper.checksums (list :sha256 "84677e9e0688a0ad52747e41c3dc660185084d11af2f8dffb9a48aac677315c3"
+;;   ;; 								  :allowed t))))
+;;   (let ((config `(:java (:import (:gradle (:wrapper (:checksums . ((:sha256 . "84677e9e0688a0ad52747e41c3dc660185084d11af2f8dffb9a48aac677315c3") (:allowed . t)))))))))
+;;     (lsp--set-configuration config)))
+;; (add-hook 'lsp-after-initialize-hook 'lsp-set-cnfg)
+
 (use-package lsp-ui
   :after lsp-mode
   :custom
@@ -1992,6 +2006,8 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
 
 (use-package lsp-java
   :hook ((java-mode . lsp))
+  :custom
+  (lsp-java-imports-gradle-wrapper-checksums ["84677e9e0688a0ad52747e41c3dc660185084d11af2f8dffb9a48aac677315c3"])
   :init
   (my/lsp-keybindings
    'java-mode-map
