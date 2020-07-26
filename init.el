@@ -115,7 +115,12 @@
 ;;;** fonts
 
 ;; use 'Source Code Pro' as emacs default font
-(set-face-attribute 'default nil :font "Source Code Pro Medium")
+(set-face-attribute 'default nil :font "Source Code Pro Medium" :height 110)
+
+;; to make sure that everything uses your desired font family we configure the fixed-pitch (monospaced) and variable-pitch (proportional spacing) faces
+(set-face-attribute 'fixed-pitch nil :font "Source Code Pro Medium" :height 110)
+(set-face-attribute 'variable-pitch nil :font "Source Code Pro Medium" :height 110)
+
 ;; set the fall back font [src: https://idiocy.org/emacs-fonts-and-fontsets.html]
 (set-fontset-font t 'latin "Noto Sans")
 
@@ -177,6 +182,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 ;;;** theme
 
 (use-package doom-themes
+  :disabled t
   :custom
   (doom-themes-enable-bold t)        ; enable bold faces
   (doom-themes-enable-italic t)      ; enable italic faces
@@ -186,6 +192,12 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (doom-themes-neotree-config)
   ;; corrects (and improves) org-mode's native fontification.
   (doom-themes-org-config))
+
+(use-package modus-operandi-theme
+  :custom
+  (modus-operandi-theme-rainbow-headings t)
+  (modus-operandi-theme-distinct-org-blocks t)
+  :config (load-theme 'modus-operandi t))
 
 ;;;** modeline
 
@@ -284,37 +296,20 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 			 (errors (assq 'error all-errors)))
 		    (cond
 		     (errors (concat
-			      (all-the-icons-faicon "ban" :face 'all-the-icons-red :v-adjust -0.1)
+			      (all-the-icons-faicon "ban" :face '(:foreground "red") :v-adjust -0.05)
 			      (propertize (format ":%s" (cdr errors))
-					  'face '(:foreground "#EB595A"))))
+					  'face '(:foreground "red" :weight bold))))
 		     ((> warnings 0) (concat
-				(all-the-icons-faicon "exclamation-circle" :face 'all-the-icons-orange :v-adjust -0.1)
+				      (all-the-icons-faicon "exclamation-circle" :face '(:foreground "dark orange") :v-adjust -0.05)
 				(propertize (format ":%s" warnings)
-					    'face '(:foreground "orange"))))
-		     (t (all-the-icons-faicon "check-circle" :face 'all-the-icons-green :v-adjust -0.1)))))
+					    'face '(:foreground "dark orange" :weight bold))))
+		     (t (all-the-icons-faicon "check-circle" :face '(:foreground "dark green") :v-adjust -0.05)))))
        (`running (all-the-icons-faicon "spinner" :face 'all-the-icons-blue :v-adjust -0.1))
        (`no-checker "")
        (`not-checked (all-the-icons-faicon "frown-o" :v-adjust -0.1))
        (`errored (all-the-icons-faicon "exclamation" :v-adjust -0.1))
        (`interrupted (all-the-icons-faicon "plug" :v-adjust -0.1))
        (`suspicious (all-the-icons-faicon "bug" :v-adjust -0.1))))))
-
-;; these faces for the (in)active modeline background color are aligned with the doom color theme
-;; if the theme is changed, these values should be adapted to a suitable value
-
-(set-face-attribute 'mode-line nil
-		    :background "#13161c"
-                    :foreground "white"
-                    :box '(:line-width 4 :color "#13161c")
-                    :overline nil
-                    :underline nil)
-
-(set-face-attribute 'mode-line-inactive nil
-                    :background "#21242b"
-                    :foreground "white"
-                    :box '(:line-width 4 :color "#21242b")
-                    :overline nil
-                    :underline nil)
 
 ;;;* keybindings
 
@@ -812,8 +807,6 @@ It does so without changing the current state and point position."
     "gR" 'recompile)
   (my/normal-state-keys
     :keymaps 'neotree-mode-map
-    ;; use own implementation to prevent problems with the doom-theme config
-    [remap neotree-select-up-node] 'my/neotree-select-up-node
     ;; reset 'refresh' to prevent conflicts with evil-mc (gr)
     "gR" 'neotree-refresh)
   (my/normal-state-keys
@@ -884,14 +877,22 @@ It does so without changing the current state and point position."
   :commands rainbow-delimiters-mode
   :custom-face
   ;; make the color scheme more colorful
-  (rainbow-delimiters-depth-1-face ((t (:foreground "dark orange"))))
-  (rainbow-delimiters-depth-2-face ((t (:foreground "deep pink"))))
-  (rainbow-delimiters-depth-3-face ((t (:foreground "chartreuse"))))
-  (rainbow-delimiters-depth-4-face ((t (:foreground "deep sky blue"))))
-  (rainbow-delimiters-depth-5-face ((t (:foreground "yellow"))))
-  (rainbow-delimiters-depth-6-face ((t (:foreground "orchid"))))
-  (rainbow-delimiters-depth-7-face ((t (:foreground "spring green"))))
-  (rainbow-delimiters-depth-8-face ((t (:foreground "sienna1"))))
+  (rainbow-delimiters-depth-1-face ((t (:foreground "dark orange"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-2-face ((t (:foreground "dark red"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-3-face ((t (:foreground "deep sky blue"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-4-face ((t (:foreground "magenta"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-5-face ((t (:foreground "dim gray"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-6-face ((t (:foreground "dark green"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-7-face ((t (:foreground "firebrick"
+					:weight semi-bold))))
+  (rainbow-delimiters-depth-8-face ((t (:foreground "medium violed red"
+					:weight semi-bold))))
   :hook ((prog-mode . rainbow-delimiters-mode)))
 
 ;;;* windows
@@ -1240,19 +1241,11 @@ It does so without changing the current state and point position."
   ;; jump to current file when opening neotree
   (neo-smart-open t)
   (neo-window-fixed-size nil)
+  (neo-theme (if (display-graphic-p) 'icons 'arrow))
   :general
   (my/leader-key
     "n" '(neotree-toggle :which-key "neotree"))
   :config
-  ;; fix for the doom theme neotree configuration
-  (defun my/neotree-select-up-node ()
-    "Fix the neotree doom-theme config to jump to the current root dir when if needed."
-    (interactive)
-    (let ((last-line-num (line-number-at-pos)))
-      (neotree-select-up-node)
-      (when (equal (line-number-at-pos) last-line-num)
-	(evil-goto-first-line))))
-
   (defun my/neotree-set-default-width ()
     "Set the neotree window width to 25 (default value)."
     (interactive)
