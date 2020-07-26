@@ -197,7 +197,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   :custom
   (modus-operandi-theme-rainbow-headings t)
   (modus-operandi-theme-distinct-org-blocks t)
-  :config (load-theme 'modus-operandi t))
+  :config
+  ;; change term white to gray to make it readable on the light background
+  (with-eval-after-load "term"
+    (set-face-attribute 'term-color-white nil :foreground "dark gray"))
+  (load-theme 'modus-operandi t))
 
 ;;;** modeline
 
