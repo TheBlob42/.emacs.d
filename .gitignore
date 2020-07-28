@@ -9,15 +9,18 @@ backups/
 config
 ignore-customizations.el
 
-# other directories
+# lsp related files & directories
 .cache/
 .extension/
-transient/
+eclipse.jdt.ls/
 workspace/
-
-# other files
 .dap-breakpoints
 .lsp-session-v1
+
+# other directories
+transient/
+
+# other files
 .org-id-locations
 bookmarks
 projectile-bookmarks.eld
