@@ -1390,6 +1390,7 @@ _z_: center
 ;; quickly open a shell buffer from anywhere
 (use-package shell-pop
   :commands shell-pop
+  :hook (shell-pop-in-after . evil-insert-state)
   :custom
   (shell-pop-full-span t)
   (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" (lambda nil (ansi-term shell-pop-term-shell)))))
