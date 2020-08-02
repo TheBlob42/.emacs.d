@@ -181,27 +181,65 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 
 ;;;** theme
 
-(use-package doom-themes
-  :disabled t
-  :custom
-  (doom-themes-enable-bold t)        ; enable bold faces
-  (doom-themes-enable-italic t)      ; enable italic faces
-  (doom-themes-neotree-file-icons t) ; use the colorful neotree icon theme
-  :config
-  (load-theme 'doom-one t)
-  (doom-themes-neotree-config)
-  ;; corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
-
+;; light theme
 (use-package modus-operandi-theme
   :custom
   (modus-operandi-theme-rainbow-headings t)
   (modus-operandi-theme-distinct-org-blocks t)
   :config
-  ;; change term white to gray to make it readable on the light background
-  (with-eval-after-load "term"
-    (set-face-attribute 'term-color-white nil :foreground "dark gray"))
-  (load-theme 'modus-operandi t))
+  (defun my/load-modus-operandi-theme ()
+    "Load the 'modus-operandi' theme with some slight modifications."
+    (load-theme 'modus-operandi t)
+    ;; change term white to gray to make it more readable on the light background
+    (with-eval-after-load "term"
+      (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
+
+;; dark theme
+(use-package modus-vivendi-theme
+  :custom
+  (modus-vivendi-theme-rainbow-headings t)
+  (modus-vivendi-theme-distinct-org-blocks t)
+  :config
+  (defun my/load-modus-vivendi-theme ()
+    "Load the 'modus-vivendi' theme with some slight modifications."
+    (load-theme 'modus-vivendi t)
+    ;; we have to manually reset the 'hl-line' color to its origin
+    (with-eval-after-load "hl-line"
+      (set-face-attribute 'hl-line nil :background "#151823"))
+    ;; reset the color change from 'modus-operandi-theme' for 'term-color-white'
+    (with-eval-after-load "term"
+      (set-face-attribute 'term-color-white nil :foreground "white")))
+
+  (defvar my--dark-mode-enabled nil
+    "State indicator if the dark mode theme is currently enabled")
+
+  (defun my/toggle-dark-mode ()
+    "Switches the theme from light to dark and vice versa."
+    (interactive)
+    (if my--dark-mode-enabled
+      (my/load-modus-operandi-theme)
+      (my/load-modus-vivendi-theme))
+    (setq my--dark-mode-enabled (not my--dark-mode-enabled)))
+
+  (defun my//dark-mode-which-key-replacement (entry)
+    "Which key replacement function that shows the currently present state."
+    (let ((key (car entry)))
+      (if my--dark-mode-enabled
+	`(,key . "[X] dark mode")
+	`(,key . "[ ] dark mode"))))
+
+  (defun my//load-theme-on-startup ()
+    "Checks the current time and loads the appropriate theme (light or dark) for it."
+    (let ((hour (string-to-number
+			 (substring (current-time-string) 11 13))))
+      (if (member hour (number-sequence 7 19))
+	(my/load-modus-operandi-theme)
+	(progn
+	  (setq my--dark-mode-enabled t)
+	  (my/load-modus-vivendi-theme)))))
+
+  ;; load startup theme depending on the current time
+  (my//load-theme-on-startup))
 
 ;;;** modeline
 
@@ -403,6 +441,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (my/leader-key
     :infix my/infix/toggle
     "" '(:ignore t :which-key "Toggles")
+    "d" '(my/toggle-dark-mode :which-key my//dark-mode-which-key-replacement)
     "w" '(whitespace-mode :which-key "whitespaces")
     "t" '(toggle-truncate-lines :which-key "truncated lines"))
 
@@ -2412,6 +2451,18 @@ to the instance via dap-debug choosing 'Java Attach'."
 ;;;* the end
 
 ;;;** currently disabled packages
+
+(use-package doom-themes
+  :disabled t
+  :custom
+  (doom-themes-enable-bold t)        ; enable bold faces
+  (doom-themes-enable-italic t)      ; enable italic faces
+  (doom-themes-neotree-file-icons t) ; use the colorful neotree icon theme
+  :config
+  (load-theme 'doom-one t)
+  (doom-themes-neotree-config)
+  ;; corrects (and improves) org-mode's native fontification.
+  (doom-themes-org-config))
 
 (use-package doom-modeline
   :disabled t
