@@ -619,7 +619,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   :general
   (my/leader-key
     :infix my/infix/buffer
-    "+" '(hydra-zoom/body :which-key "~Test Size~"))
+    "+" '(hydra-zoom/body :which-key "~Text Size~"))
   (my/leader-key
     :infix my/infix/windows
     "+" '(hydra-window/body :which-key "~Window Size~"))
