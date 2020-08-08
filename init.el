@@ -2424,17 +2424,19 @@ If multiple candidates occure, show a seletion via ivy"
   :config
   (defhydra hydra-outline-movement (:hint nil)
     "
-^^^Movement^         ^Show/Hide^        ^Other^
-^^^^^^^^--------------------------------------------------
-_j_/_J_: next        _A_: show all      _TAB_: fold cycle
-_k_/_K_: previous    _H_: hide all      _z_: center
-^^_h_: goto parent   _O_: hide others
-^^^^^^^^--------------------------------------------------
+^Movement^                ^Show/Hide^        ^Other^
+^^^^^^---------------------------------------------------
+_j_: next visible         _TAB_: fold cycle  _z_: center
+_k_: previous visible     _A_: show all
+_J_: next same level      _H_: hide all
+_K_: previous same level  _O_: hide others
+^^_h_: goto parent
+^^^^^^---------------------------------------------------
 [_q_]: quit
-^^^^^^^^--------------------------------------------------
+^^^^^^---------------------------------------------------
 "
-    ("j" outline-next-heading)
-    ("k" outline-previous-heading)
+    ("j" outline-next-visible-heading)
+    ("k" outline-previous-visible-heading)
     ("J" outline-forward-same-level)
     ("K" outline-backward-same-level)
     ("h" outline-up-heading)
