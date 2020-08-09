@@ -690,6 +690,9 @@ _V_: shrink   _H_: shrink
   ;; these options are needed by 'evil-collection'
   (evil-want-integration t)
   (evil-want-keybinding nil)
+  ;; window split options
+  (evil-split-window-below nil)
+  (evil-vsplit-window-right nil)
   :config
   ;; |--------------------------------------------------|
   ;; |--- kill ring adaptions
@@ -813,9 +816,23 @@ It does so without changing the current state and point position."
   
   ;; |--------------------------------------------------|
   ;; |--- Windows
+
+  (defun my/evil-vsplit-right-and-focus ()
+    "V-Split the current window and focus the new window on the right."
+    (interactive)
+    (let ((evil-vsplit-window-right t))
+      (evil-window-vsplit)))
+
+  (defun my/evil-split-below-and-focus ()
+    "Split the current window and focus the new window below."
+    (interactive)
+    (let ((evil-split-window-below t))
+      (evil-window-split)))
   
   (my/leader-key
     :infix my/infix/windows
+    "V" '(my/evil-vsplit-right-and-focus :which-key "vsplit and focus")
+    "S" '(my/evil-split-below-and-focus :which-key "split and focus")
     "v" '(evil-window-vsplit :which-key "vsplit")
     "s" '(evil-window-split :which-key "split")
     "h" '(evil-window-left :which-key "go left")
@@ -976,30 +993,9 @@ It does so without changing the current state and point position."
 ;; window utility functins
 (use-package windmove
   :ensure nil
-  :defines golden-ratio-mode
   :config
-  (defun spacemacs/split-window-below-and-focus ()
-    "Split the window vertically and focus the new window."
-    (interactive)
-    (split-window-below)
-    (windmove-down)
-    (when (and (boundp 'golden-ratio-mode)
-	       (symbol-value golden-ratio-mode))
-      (golden-ratio)))
-  
-  (defun spacemacs/split-window-right-and-focus ()
-    "Split the window horizontally and focus the new window."
-    (interactive)
-    (split-window-right)
-    (windmove-right)
-    (when (and (boundp 'golden-ratio-mode)
-	       (symbol-value golden-ratio-mode))
-      (golden-ratio)))
-
   (my/leader-key
     :infix my/infix/windows
-    "V" '(spacemacs/split-window-right-and-focus :which-key "vsplit and focus")
-    "S" '(spacemacs/split-window-below-and-focus :which-key "split and focus")
     "w" '(:ignore t :which-key "Swap")
     "wh" '(windmove-swap-states-left :which-key "left")
     "wj" '(windmove-swap-states-down :which-key "down")
