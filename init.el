@@ -838,7 +838,6 @@ It does so without changing the current state and point position."
 			  comint
 			  compile
 			  dired
-			  neotree
 			  (package-menu package)
 			  (term term ansi-term multi-term)))
   (my/visual-state-keys
@@ -857,10 +856,6 @@ It does so without changing the current state and point position."
     :keymaps 'compilation-mode-map
     ;; reset 'recompile' to prevent conflicts with evil-mc (gr)
     "gR" 'recompile)
-  (my/normal-state-keys
-    :keymaps 'neotree-mode-map
-    ;; reset 'refresh' to prevent conflicts with evil-mc (gr)
-    "gR" 'neotree-refresh)
   (my/normal-state-keys
     :keymaps 'dired-mode-map
     "gR" 'revert-buffer)
@@ -964,10 +959,6 @@ It does so without changing the current state and point position."
   (winum-scope 'frame-local)
   (winum-auto-setup-mode-line nil) ; do not add the window number to the modeline autmatically
   :config
-  (defun winum-assign-0-to-neotree ()
-    "Always assign the neotree window to winum number zero."
-    (when (string-match-p (buffer-name) ".*\\*NeoTree\\*.*") 0))
-  (add-to-list 'winum-assign-functions #'winum-assign-0-to-neotree)
   ;; we don't want to create autoloads here and therefore skip the ':general' keyword
   (my/leader-key
     "0" 'winum-select-window-0
@@ -1287,37 +1278,6 @@ It does so without changing the current state and point position."
   (general-define-key
    :keymaps 'java-mode-map
    [remap c-indent-line-or-region] 'company-indent-or-complete-common))
-
-;;;* neotree
-
-;; file explorer for emacs
-(use-package neotree
-  :custom
-  ;; jump to current file when opening neotree
-  (neo-smart-open t)
-  (neo-window-fixed-size nil)
-  (neo-theme (if (display-graphic-p) 'icons 'arrow))
-  :general
-  (my/leader-key
-    "n" '(neotree-toggle :which-key "neotree"))
-  :config
-  (defun my/neotree-set-default-width ()
-    "Set the neotree window width to 25 (default value)."
-    (interactive)
-    (setq neo-window-width 25)
-    (neo-global--reset-width))
-
-  (my/normal-state-keys
-    :keymaps 'neotree-mode-map
-    "-" '(my/neotree-set-default-width :which-key "minimize"))
-
-  ;; do not resize the neotree window after toggeling
-  ;; [src: https://github.com/jaypei/emacs-neotree/issues/262#issuecomment-383352799]
-  (add-to-list 'window-size-change-functions
-                  (lambda (_)
-                    (let ((neo-window (neo-global--get-window)))
-                      (unless (null neo-window)
-                        (setq neo-window-width (window-width neo-window)))))))
 
 ;;;* dired
 
@@ -2631,6 +2591,35 @@ to the instance via dap-debug choosing 'Java Attach'."
   (doom-modeline-buffer-file-name-style 'file-name)
   (doom-modeline-vcs-max-length 12)
   :init (doom-modeline-mode 1))
+
+(use-package neotree
+  :disabled t
+  :custom
+  ;; jump to current file when opening neotree
+  (neo-smart-open t)
+  (neo-window-fixed-size nil)
+  (neo-theme (if (display-graphic-p) 'icons 'arrow))
+  :general
+  (my/leader-key
+    "n" '(neotree-toggle :which-key "neotree"))
+  :config
+  (defun my/neotree-set-default-width ()
+    "Set the neotree window width to 25 (default value)."
+    (interactive)
+    (setq neo-window-width 25)
+    (neo-global--reset-width))
+
+  (my/normal-state-keys
+    :keymaps 'neotree-mode-map
+    "-" '(my/neotree-set-default-width :which-key "minimize"))
+
+  ;; do not resize the neotree window after toggeling
+  ;; [src: https://github.com/jaypei/emacs-neotree/issues/262#issuecomment-383352799]
+  (add-to-list 'window-size-change-functions
+                  (lambda (_)
+                    (let ((neo-window (neo-global--get-window)))
+                      (unless (null neo-window)
+                        (setq neo-window-width (window-width neo-window)))))))
 
 ;;;** local variables & file end
 
