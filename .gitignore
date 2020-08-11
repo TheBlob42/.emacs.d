@@ -23,6 +23,7 @@ transient/
 # other files
 .org-id-locations
 bookmarks
+flycheck_init.el
 projectile-bookmarks.eld
 recentf
 tramp
