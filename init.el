@@ -2457,6 +2457,9 @@ _K_: previous same level  _O_: hide others
 (use-package display-line-numbers
   :ensure nil
   :hook ((prog-mode . display-line-numbers-mode))
+  :custom
+  ;; don't shrink available space to prevent "flickering"
+  (display-line-numbers-grow-only t)
   :general
   (my/leader-key
     :infix my/infix/toggle
