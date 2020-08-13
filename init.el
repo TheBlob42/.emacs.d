@@ -1035,7 +1035,7 @@ It does so without changing the current state and point position."
 
 (use-package ivy
   :custom
-  (ivy-count-format "(%d/%d) ")
+  (ivy-count-format "(%d/%d) ")          ; format for the number of candidates
   (ivy-use-virtual-buffers t)            ; enable virtual buffers (e.g. recent files & bookmarks)
   (ivy-magic-slash-non-match-action nil) ; allow "/" to create new non-existent directories
   (ivy-use-selectable-prompt t)          ; makes the prompt line (line 0) selectable
@@ -1729,7 +1729,6 @@ _S_: slurp backward
 			 ;; replace the prefix to get a correct link target
 			 (concat "\\(" todo-regex "\\|" name-regex "\\)") "" target))
 	   (description (read-string "Description: ")))
-      (print todo-regex)
       (if (string= "" description)
 	  (insert (concat "[[" link-target "]]"))
 	(insert (concat "[[" link-target "][" description "]]")))))
