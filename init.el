@@ -1583,13 +1583,14 @@ _z_: center
     "m" '(org-ctrl-c-ctrl-c :which-key "ctrl-c ctrl-c")
     "TAB" '(my/org-show-current-heading-tidily :which-key "collapse others")
     "o" '(org-open-at-point :which-key "open at point")
-    "r" '(org-refile :which-key "refile heading")
+    "r" '(org-refile :which-key "refile")
     ;; Toggles
     "T" '(:ignore t :which-key "Toggle")
     "Ti" 'my/org-toggle-inline-images
     ;; Insert
     "i" '(:ignore t :which-key "Insert")
     "ib" '(org-insert-structure-template :which-key "template block")
+    "it" '(counsel-org-tag :which-key "set tags")
     ;; Links
     "l" '(:ignore t :which-key "Links")
     "le" '(hydra-org-links/body :which-key "~Edit~")
