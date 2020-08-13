@@ -1290,7 +1290,19 @@ It does so without changing the current state and point position."
   (my/normal-state-keys
     :keymaps 'dired-mode-map
     "_" 'my/dired-create-empty-file)
+  (my/major-mode-leader-key
+    :keymaps 'wdired-mode-map
+    "" '(:ignore t :which-key "Wdired")
+    "c" '(wdired-finish-edit :which-key "finish edit")
+    "k" '(my/wdired-abort-changes :which-key "cancel"))
   :config
+  (evil-set-initial-state 'wdired-mode 'normal)
+  (defun my/wdired-abort-changes ()
+    "Abort 'wdired' changes and refresh the buffer afterwards to ensure that the icons are correctly displayed."
+    (interactive)
+    (wdired-abort-changes)
+    (revert-buffer))
+
   (defun my/kill-all-dired-buffers ()
     "Kill all currently opened 'dired' buffers."
     (interactive)
