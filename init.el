@@ -959,7 +959,7 @@ It does so without changing the current state and point position."
 					:weight semi-bold))))
   (rainbow-delimiters-depth-7-face ((t (:foreground "firebrick"
 					:weight semi-bold))))
-  (rainbow-delimiters-depth-8-face ((t (:foreground "medium violed red"
+  (rainbow-delimiters-depth-8-face ((t (:foreground "medium violet red"
 					:weight semi-bold))))
   :hook ((prog-mode . rainbow-delimiters-mode)))
 
