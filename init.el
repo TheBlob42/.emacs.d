@@ -1051,15 +1051,20 @@ It does so without changing the current state and point position."
     "bb" '(ivy-switch-buffer :which-key "switch")
     "bB" '(my/ivy-switch-to-non-star-buffer :which-key "switch (no *)"))
 
-  ;; enable up and down navigation in ivy buffer with 'C-j' and 'C-k'
   (general-define-key
    :keymaps 'ivy-minibuffer-map
+   ;; enable up and down navigation in ivy buffer with 'C-j' and 'C-k'
    "C-k" 'ivy-previous-line
-   "C-j" 'ivy-next-line)
+   "C-j" 'ivy-next-line
+   ;; add bindings to (un)mark candidates without using the ivy-hydra
+   "C-SPC" 'ivy-mark
+   "C-S-SPC" 'ivy-unmark)
+
   (general-define-key
    :keymaps 'ivy-switch-buffer-map
+   ;; remap "C-k" for movement and use "C-d" instead to kill a buffer
    "C-k" 'ivy-previous-line
-   "C-d" 'ivy-switch-buffer-kill) ; kill a buffer directly from the ivy list
+   "C-d" 'ivy-switch-buffer-kill)
 
   (ivy-mode 1))
 
