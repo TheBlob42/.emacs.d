@@ -307,6 +307,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 			       " "
 			       (cond
 				((equal 'java-mode major-mode) "Java")
+				((equal 'wdired-mode major-mode) (all-the-icons-faicon "pencil" :v-adjust -0.1))
 				((-contains? '(js-mode text-mode) major-mode) (all-the-icons-icon-for-mode major-mode :v-adjust 0))
 				(t (all-the-icons-icon-for-mode major-mode :v-adjust -0.1)))
 			       "  ")))
@@ -1277,6 +1278,19 @@ It does so without changing the current state and point position."
 
 ;;;* dired
 
+(use-package wdired
+  :ensure nil
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'wdired-mode-map
+    "" '(:ignore t :which-key "Wdired")
+    "c" '(wdired-finish-edit :which-key "finish edit")
+    "k" '(wdired-abort-changes :which-key "cancel"))
+  :config
+  (evil-set-initial-state 'wdired-mode 'normal)
+  ;; refresh the buffer after aborting to ensure that the icons are displayed correctly
+  (advice-add 'wdired-abort-changes :after (lambda () (revert-buffer))))
+
 (use-package dired
   :ensure nil
   :hook (dired-mode . auto-revert-mode) ; automatically revert buffer on file changes
@@ -1290,19 +1304,7 @@ It does so without changing the current state and point position."
   (my/normal-state-keys
     :keymaps 'dired-mode-map
     "_" 'my/dired-create-empty-file)
-  (my/major-mode-leader-key
-    :keymaps 'wdired-mode-map
-    "" '(:ignore t :which-key "Wdired")
-    "c" '(wdired-finish-edit :which-key "finish edit")
-    "k" '(my/wdired-abort-changes :which-key "cancel"))
   :config
-  (evil-set-initial-state 'wdired-mode 'normal)
-  (defun my/wdired-abort-changes ()
-    "Abort 'wdired' changes and refresh the buffer afterwards to ensure that the icons are correctly displayed."
-    (interactive)
-    (wdired-abort-changes)
-    (revert-buffer))
-
   (defun my/kill-all-dired-buffers ()
     "Kill all currently opened 'dired' buffers."
     (interactive)
