@@ -2151,6 +2151,123 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
   (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.svelte\\'" . web-mode)))
 
+;;;** markdown
+
+(use-package markdown-mode
+  :commands markdown-mode
+  :custom (markdown-command "pandoc") ; use 'pandoc' to ensure GFM preview is working correctly
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'markdown-mode-map
+    :major-modes t
+    "" '(:ignore t :which-key "Markdown")
+    "i" '(:ignore t :which-key "Insert")
+    "il" '(markdown-insert-link :which-key "link")
+    "ic" '(markdown-insert-gfm-code-block :which-key "code block")
+    "ii" '(markdown-insert-image :which-key "image")
+    "t" '(:ignore t :which-key "Table")
+    "tn" '(markdown-insert-table :which-key "new table")
+    "ta" '(markdown-table-align :which-key "align")
+    "te" '(hydra-markdown-table/body :which-key "[edit]"))
+  :config
+  ;; overwrite 'markdown-outdent-or-delete' with the default backspace behavior
+  ;; otherwise evil-mc can't handle deletion with multiple cursors
+  (my/insert-state-keys
+    :keymaps 'markdown-mode-map
+    "<backspace>" 'backward-delete-char-untabify)
+
+  (defhydra hydra-markdown-table (:hint nil
+				  :pre (when (not (markdown-table-at-point-p))
+					 (user-error "Not at a table")))
+    "
+Movement      ^^^^^Rows^            ^Columns^
+^^^^^^^^^----------------------------------------------
+    ^_k_^         _rj_: move down   _ch_: move left
+ _h_     _l_      _rk_: move up     _cl_: move right
+    ^_j_^         _ri_: insert      _ci_: insert
+              ^^^^_rd_: delete      _cd_: delete
+^^^^^^^^^----------------------------------------------
+[_q_]: quit
+^^^^^^^^^----------------------------------------------
+"
+    ;; movement
+    ("h" markdown-table-backward-cell)
+    ("l" markdown-table-forward-cell)
+    ("k" my/markdown-table-previous-row)
+    ("j" my/markdown-table-next-row)
+    ;; rows
+    ("rj" markdown-table-move-row-down)
+    ("rk" markdown-table-move-row-up)
+    ("ri" markdown-table-insert-row)
+    ("rd" markdown-table-delete-row)
+    ;; columns
+    ("ch" markdown-table-move-column-left)
+    ("cl" markdown-table-move-column-right)
+    ("ci" markdown-table-insert-column)
+    ("cd" markdown-table-delete-column)
+    ("q" nil))
+  (defun my/markdown-table-next-row ()
+    (interactive)
+    (let ((pos (point)))
+      (evil-next-line)
+      (when (not (markdown-table-at-point-p))
+	(goto-char pos)
+	(user-error "Cannot move to next table row"))))
+  (defun my/markdown-table-previous-row ()
+    (interactive)
+    (let ((pos (point)))
+      (evil-previous-line)
+      (when (not (markdown-table-at-point-p))
+	(goto-char pos)
+	(user-error "Cannot move to previous table row")))))
+
+(use-package markdown-preview-mode
+  :after markdown-mode
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'markdown-mode-map
+    :major-modes 'markdown-mode
+    "p" '(markdown-preview-mode :which-key my//markdown-preview-mode-which-key-replacement)
+    "P" '(:ignore t :which-key "Preview")
+    "Po" '(markdown-preview-open-browser :which-key "open preview in browser")
+    "Pc" '(markdown-preview-cleanup :which-key "cleanup"))
+  :init
+  (defun my//markdown-preview-mode-which-key-replacement (entry)
+    "Which key replacement function that checks for 'markdown-preview-mode'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p markdown-preview-mode)
+	`(,key . "[X] preview mode")
+	`(,key . "[ ] preview mode"))))
+  :config
+  ;; set custom stylesheets and javascript so the preview looks more like Github markdown [src: https://github.com/ancane/markdown-preview-mode/issues/29]
+  (setq markdown-preview-stylesheets
+	(list "https://cdnjs.cloudflare.com/ajax/libs/github-markdown-css/2.9.0/github-markdown.min.css"
+              "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css"
+	      "<style>
+                .markdown-body {
+                  box-sizing: border-box;
+                  min-width: 200px;
+                  max-width: 980px;
+                  margin: 0 auto;
+                  padding: 45px;
+                }
+
+                @media (max-width: 767px) {
+                  .markdown-body {
+                    padding: 15px;
+                  }
+                }
+               </style>")
+	markdown-preview-javascript
+	(list "https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"
+	      "<script>
+                $(document).on('mdContentChange', function() {
+                  $('pre code').each(function(i, block) {
+                    hljs.highlightBlock(block);
+                  });
+                });
+               </script>")))
+
 ;;;** java
 
 (use-package lsp-java

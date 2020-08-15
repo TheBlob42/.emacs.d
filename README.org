@@ -36,6 +36,9 @@
     - [[https://github.com/ajv-validator/ajv][ajv]] (recommended)
     - [[https://python-jsonschema.readthedocs.io/en/stable/][jsonschema]]
  
+*** Markdown preview & export
+    To export and/or preview your markdown files to HTML or other formats you need to install [[https://pandoc.org/][pandoc]]
+
 * Configuration
   For easy usage on different machines certain options can be configured in ~/.emacs.d/config~ (see ~config.sample~ for an example file)
 
