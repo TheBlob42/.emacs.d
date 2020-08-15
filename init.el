@@ -1136,21 +1136,22 @@ It does so without changing the current state and point position."
   :after (ivy counsel)
   :commands ivy-wgrep-change-to-wgrep-mode
   :general
-  (my/major-mode-leader-key
-    :keymaps 'ivy-occur-mode-map
-    :major-modes t
-    "" '(:ignore t :which-key "Ivy Occur")
-    "y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer"))
-  ;; add major mode bindings to switch easily to wgrep mode
+  ;; keybindings to easliy switch to wgrep from ivy occur
   (my/major-mode-leader-key
     :keymaps 'ivy-occur-grep-mode-map
     :major-modes t
     "" '(:ignore t :which-key "Ivy Occur")
-    "y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer")
-    "w" '(ivy-wgrep-change-to-wgrep-mode :which-key "enable wgrep"))
+    "Y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer")
+    "w" '(ivy-wgrep-change-to-wgrep-mode :which-key "switch to wgrep"))
+  (my/major-mode-leader-key
+    :keymaps 'wgrep-mode-map
+    :major-modes 'ivy-occur-grep-mode
+    "" '(:ignore t :which-key "Wgrep")
+    "c" '(wgrep-finish-edit :which-key "finish edit")
+    "k" '(wgrep-abort-changes :which-key "cancel"))
   :config
   (defun my/copy-content-to-new-buffer ()
-    "Copy content of the current buffer into a new one and kill the current."
+    "Copy content of the current buffer into a new one and kill the old one."
     (interactive)
     (let ((old-buffer (current-buffer))
 	  (new-buffer (generate-new-buffer "untitled")))
