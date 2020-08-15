@@ -628,10 +628,10 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   :general
   (my/leader-key
     :infix my/infix/buffer
-    "+" '(hydra-zoom/body :which-key "~Text Size~"))
+    "+" '(hydra-zoom/body :which-key "[text size]"))
   (my/leader-key
     :infix my/infix/windows
-    "+" '(hydra-window/body :which-key "~Window Size~"))
+    "+" '(hydra-window/body :which-key "[window size]"))
   :config
   (defun my/default-text-size ()
     "Reset the text size to the default value."
@@ -1470,7 +1470,7 @@ It does so without changing the current state and point position."
   (my/leader-key
     :infix my/infix/errors
     :keymaps 'flycheck-mode-map
-    "" '(hydra-flycheck/body :which-key "~Errors~"))
+    "" '(hydra-flycheck/body :which-key "[errors]"))
   :init
   ;; always display the error list at the bottom side of the frame
   ;; occupying a third of the entire height of the frame
@@ -1612,7 +1612,7 @@ _z_: center
     "it" '(counsel-org-tag :which-key "set tags")
     ;; Links
     "l" '(:ignore t :which-key "Links")
-    "le" '(hydra-org-links/body :which-key "~Edit~")
+    "le" '(hydra-org-links/body :which-key "[edit]")
     "ll" '(org-insert-link :which-key "link")
     "li" '(my/insert-internal-org-link :which-key "internal link")
     "lf" '(my/insert-file-link :which-key "file link")
@@ -1620,7 +1620,7 @@ _z_: center
     "t" '(:ignore t :which-key "Tables")
     "tt" '(org-table-create-or-convert-from-region :which-key "table")
     "tb" '(org-table-blank-field :which-key "blank field")
-    "te" '(hydra-org-table/body :which-key "~Edit~")
+    "te" '(hydra-org-table/body :which-key "[edit]")
     ;; Text
     "x" '(:ignore t :which-key "Text")
     "xb" '(my/org-bold :which-key "bold")
@@ -2421,7 +2421,7 @@ _k_: previous visible   _H_: hide all      _z_: center
 
   (my/leader-key
     :keymaps 'outline-minor-mode-map
-    "l" '(hydra-outline-movement/body :which-key "~Outline~")))
+    "l" '(hydra-outline-movement/body :which-key "[outline]")))
 
 ;; add some utility functions for 'outline-mode'
 (use-package outline-magic
