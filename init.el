@@ -1521,15 +1521,15 @@ _z_: center
 
 ;;;* git
 
-;; use GIT with ease from within Emacs
+;; use git with ease from within emacs
 (use-package magit
-  :commands (magit-status magit-blame)
   :general
   (my/leader-key
     :infix my/infix/git
     "s" '(magit-status :which-key "magit status")
     "b" '(magit-blame :which-key "magit blame"))
 
+  ;; keybindings for the commit message editor
   (my/major-mode-leader-key
     :keymaps 'with-editor-mode-map
     :major-modes 'text-mode
@@ -1538,23 +1538,41 @@ _z_: center
     "k" '(with-editor-cancel :which-key "editor cancel"))
   :config
   ;; this makes magit ask us wether we want to create a PR after we pushed a new branch to stash
-  ;; and if so it opens the webpage for creating it in your browser
-  (defvar jms/magit-process-klarna-create-pull-request-regexp
+  ;; if the pull request creation is confirmed it will open the corresponding webpage in the browser
+  ;; NOTE this is exclusively working with stash, for other hosts the regex would probably need some adaptions
+  (defvar my--magit-process-create-pull-request-regexp
     "remote: Create pull request for.*\nremote: +\\(?1:[^ ]+\\)[^\n]*")
   
-  (defun jms/magit-process-klarna-ask-create-bitbucket-pull-request (_ string)
+  (defun my//magit-process-ask-create-bitbucket-pull-request (_ string)
     "Check if the STRING match the pull request regex and browse to this url if desired."
-    (when (string-match jms/magit-process-klarna-create-pull-request-regexp string)
+    (when (string-match my--magit-process-create-pull-request-regexp string)
       (let ((url (match-string 1 string))
             (inhibit-message t))
 	(if (y-or-n-p "Create PR? ")
             (browse-url (url-encode-url url))))))
   
-  (setq magit-process-prompt-functions #'jms/magit-process-klarna-ask-create-bitbucket-pull-request))
+  (setq magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request))
 
-;; evil bindings for magit
+;; sets up evil keybindings for magit
 (use-package evil-magit
   :after magit)
+
+;; browse corresponding page on github/gitlab/bitbucket/etc. from an emacs buffer
+;; this works with several buffer types like:
+;; - file buffer
+;; - dired
+;; - magit (representing code)
+
+;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see 'browse-at-remote-remote-type-domains')
+;; if you have a specific git domain not in that list (e.g. github enterprise) the mapping will not work
+;; to solve this issue you can set the repository type directly in your git config:
+;; git config --add browseAtRemote.type "github" (for the current repository only)
+;; git config --global --add browseAtRemote.type "stash" (for all your repositories)
+(use-package browse-at-remote
+  :general
+  (my/leader-key
+    :infix my/infix/git
+    "o" '(browse-at-remote :which-key "browse at remote")))
 
 ;;;* terminal
 
