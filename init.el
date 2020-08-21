@@ -2093,8 +2093,9 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
 (use-package lsp-ui
   :after lsp-mode
   :custom
-  (lsp-ui-sideline-enable nil) ; disable side line view by default
-  (lsp-ui-doc-enable nil))     ; disable doc mode by default
+  (lsp-ui-sideline-enable nil)  ; disable side line view by default
+  (lsp-ui-doc-position 'bottom) ; show the documentation frame at the bottom of the current window
+  (lsp-ui-doc-enable nil))      ; disable doc mode by default
 
 ;; ivy integration for lsp (especially for symbol search)
 (use-package lsp-ivy
