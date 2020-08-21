@@ -1044,14 +1044,17 @@ It does so without changing the current state and point position."
   (ivy-use-selectable-prompt t)          ; makes the prompt line (line 0) selectable
   (ivy-fixed-height-minibuffer t)        ; fixate the height of the minibuffer even if there are fewer candidates
   :config
-  (defun my/ivy-switch-to-non-star-buffer ()
-    "Call 'ivy-switch-buffer' but ignore all buffers containing a star (*)."
+  (defun my/ivy-switch-to-non-system-buffer ()
+    "Call 'ivy-switch-buffer' but ignore certain types of 'system' buffers."
     (interactive)
-    (let ((ivy-ignore-buffers (append ivy-ignore-buffers `("^\*"))))
+    (let ((ivy-ignore-buffers (append ivy-ignore-buffers
+				      '("^ *\\*")    ; ignore all "star buffers"
+				      '("^:")        ; ignore dired sidebar buffers
+				      '("^magit")))) ; ignore magit buffers
       (ivy-switch-buffer)))
   (my/leader-key
     "bb" '(ivy-switch-buffer :which-key "switch")
-    "bB" '(my/ivy-switch-to-non-star-buffer :which-key "switch (no *)"))
+    "bB" '(my/ivy-switch-to-non-system-buffer :which-key "switch (no sys)"))
 
   (general-define-key
    :keymaps 'ivy-minibuffer-map
@@ -1085,7 +1088,8 @@ It does so without changing the current state and point position."
   :after ivy
   :custom (recentf-max-saved-items 50) ; increase number of saved recent files (default: 20)
   :general
-  (my/leader-key "SPC" '(counsel-M-x :which-key "M-x"))
+  (my/leader-key
+    "SPC" '(counsel-M-x :which-key "M-x"))
   (my/leader-key
     :infix my/infix/files
     "f" '(counsel-find-file :which-key "find file")
