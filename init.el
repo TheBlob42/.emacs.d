@@ -368,7 +368,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defvar my/infix/frames "F")
   (defvar my/infix/toggle "T")
   (defvar my/infix/buffer "b")
-  (defvar my/infix/dired "D")
+  (defvar my/infix/dired "d")
   (defvar my/infix/custom "c")
   (defvar my/infix/errors "e")
   (defvar my/infix/files "f")
@@ -1354,19 +1354,6 @@ It does so without changing the current state and point position."
 
 ;;;* dired
 
-(use-package wdired
-  :ensure nil
-  :general
-  (my/major-mode-leader-key
-    :keymaps 'wdired-mode-map
-    "" '(:ignore t :which-key "Wdired")
-    "c" '(wdired-finish-edit :which-key "finish edit")
-    "k" '(wdired-abort-changes :which-key "cancel"))
-  :config
-  (evil-set-initial-state 'wdired-mode 'normal)
-  ;; refresh the buffer after aborting to ensure that the icons are displayed correctly
-  (advice-add 'wdired-abort-changes :after (lambda () (revert-buffer))))
-
 (use-package dired
   :ensure nil
   :hook (dired-mode . auto-revert-mode) ; automatically revert buffer on file changes
@@ -1408,6 +1395,19 @@ It does so without changing the current state and point position."
     (interactive)
     (let ((ivy-ignore-buffers (append ivy-ignore-buffers '(my//only-dired-buffers))))
       (ivy-switch-buffer))))
+
+(use-package wdired
+  :ensure nil
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'wdired-mode-map
+    "" '(:ignore t :which-key "Wdired")
+    "c" '(wdired-finish-edit :which-key "finish edit")
+    "k" '(wdired-abort-changes :which-key "cancel"))
+  :config
+  (evil-set-initial-state 'wdired-mode 'normal)
+  ;; refresh the buffer after aborting to ensure that the icons are displayed correctly
+  (advice-add 'wdired-abort-changes :after (lambda () (revert-buffer))))
 
 ;; show icons for files and directories
 (use-package all-the-icons-dired
@@ -1473,7 +1473,7 @@ It does so without changing the current state and point position."
   (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with 'balance-windows')
   :general
   (my/leader-key
-    "d" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
+    "r" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
   :init
   (defun my//sidebar-which-key-replacement (entry)
     "Which key replacement function for the 'dired-sidebar'."
