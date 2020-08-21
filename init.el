@@ -670,6 +670,8 @@ _V_: shrink   _H_: shrink
     ("=" balance-windows)
     ("q" nil)))
 
+(use-package transient)
+
 ;;;* evil
 
 ;; save the startup cursor color of the current theme for later usage
@@ -1094,7 +1096,8 @@ It does so without changing the current state and point position."
     "c" '(my/insert-color-hex :which-key "color"))
   (my/leader-key
     :infix my/infix/search
-    "f" '(my/counsel-in-dir :which-key "search in dir"))
+    "d" '(my/counsel-ag-choose-directory :which-key "search in dir")
+    "D" '(my/counsel-ag-with-config :which-key "search in dir (config)"))
   (my/leader-key
     :infix my/infix/jump
     "i" '(counsel-semantic-or-imenu :which-key "imenu"))
@@ -1106,11 +1109,74 @@ It does so without changing the current state and point position."
 	   (color (counsel-colors-web)))
       (counsel-colors-action-insert-hex color)))
 
-  (defun my/counsel-in-dir ()
-    "Use 'counsel-ag' inside a user choosen directory."
+  (defun my/counsel-ag-choose-directory ()
+    "Choose a directory and perform an ag (silver searcher) search operation."
     (interactive)
-    ;; skip ag arguments by passing 'nil'
     (counsel-ag nil (counsel-read-directory-name "Search directory: ")))
+
+  (defun my//ag-transient-infix (&optional args)
+    "Choose a directory. Then call ag on with the given arguments."
+    (interactive (list (transient-args 'my/counsel-ag-with-config)))
+    (counsel-ag nil                                                ; no initial input
+		(counsel-read-directory-name "Select directory: ") ; choose directory
+		(s-join " " args)))                                ; pass ag arguments
+
+  (defun my//ag-select-file-extension (&rest _ignored)
+    "Parse all available sg file extension options. Choose one of the available options via ivy."
+    (let* ((ext-strings (s-match-strings-all "\\(--.*?\\)\n\s+\\(.*?\\)\n"
+						  (shell-command-to-string "ag --list-file-types")))
+	   ;; calculate max length so we can use it for the alignment of the ivy candidates
+	   (max-length (-max (-map 'seq-length (-map '-second-item ext-strings))))
+	   (formatted-type-strings (-map (lambda (x)
+					   (concat
+					    (substring (-second-item x) 2)
+					    ;; fill with spaces for a matching alignment
+					    (s-repeat (- max-length (seq-length (-second-item x))) " ")
+					    " [" (-third-item x) "]"))
+					 ext-strings))
+	   (ext (condition-case nil
+		    (ivy-read "Select file extension: " formatted-type-strings
+			      :require-match t)
+		  (quit nil)))) ; catch local quit within ivy
+      (if (not ext)
+	"" (concat "--" (-first-item (s-split " " ext))))))
+
+  (transient-define-argument my--ag-file-type ()
+    :description "File Types"
+    :class 'transient-option
+    :key "-T"
+    :argument ""
+    :reader 'my//ag-select-file-extension)
+
+  (transient-define-argument my--ag-file-search-regex ()
+    :description "Limit search to filenames matching PATTERN"
+    :class 'transient-option
+    :key "-G"
+    :argument "--file-search-regex"
+    :reader (lambda (&rest _ignored)
+	      (concat " " (read-string "PATTERN: "))))
+
+  (transient-define-argument my--ag-ignore-regex ()
+    :description "Ignore files/directories matching PATTERN"
+    :class 'transient-option
+    :key "-I"
+    :argument "--ignore"
+    :reader (lambda (&rest _ignored)
+	      (concat " " (read-string "PATTERN: "))))
+
+  (transient-define-prefix my/counsel-ag-with-config ()
+    "Search Options"
+    ["Search Options"
+     ("-f" "Follow symlinks" "--follow")
+     (my--ag-file-search-regex)
+     (my--ag-ignore-regex)
+     ("-u" "Search ALL files" "--unrestricted")
+     ("-U" "Ignore VCS ignore files" "--skip-vcs-ignores")
+     ("-v" "Invert match" "--invert-match")
+     ("-z" "Search contents of compressed (e.g. gzip) files" "--search-zip")
+     (my--ag-file-type)]
+    ["Execute"
+     ("RET" "Search" my//ag-transient-infix)])
 
   (counsel-mode 1))
 
