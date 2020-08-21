@@ -1428,7 +1428,7 @@ It does so without changing the current state and point position."
    "p" '(my/dired-ranger-paste :which-key "paste"))
   :config
   (defun my/dired-ranger-copy-add ()
-    "Call 'dired-ranger-copy' with prefix arg to ad the selected files to the last copy ring entry."
+    "Call 'dired-ranger-copy' with prefix arg to add the selected files to the last copy ring entry."
     (interactive)
     (dired-ranger-copy '(4)))
 
@@ -1465,12 +1465,15 @@ It does so without changing the current state and point position."
 ;; neotree like sidebar using dired
 (use-package dired-sidebar
   :after dired dired-subtree
+  :hook
+  ;; make all dired-sidebar windows resizeable
+  (dired-sidebar-mode . (lambda () (setq-local window-size-fixed nil)))
   :custom
   (dired-sidebar-refresh-on-projectile-switch nil) ; do not refresh the sidebar on project switch
   (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with 'balance-windows')
   :general
   (my/leader-key
-    "d" '(my/dired-side-bar-toggle :which-key my//sidebar-which-key-replacement))
+    "d" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
   :init
   (defun my//sidebar-which-key-replacement (entry)
     "Which key replacement function for the 'dired-sidebar'."
@@ -1499,15 +1502,7 @@ It does so without changing the current state and point position."
     (defun winum-assign-0-to-sidebar ()
       "Always assign any 'dired-sidebar' window to winum number zero."
       (when (eq major-mode 'dired-sidebar-mode) 0))
-    (add-to-list 'winum-assign-functions #'winum-assign-0-to-sidebar))
-
-  (defun my/dired-side-bar-toggle ()
-    "Toggle the 'dired-sidebar'. Also unlock the fixed window size of the sidebar window."
-    (interactive)
-    (dired-sidebar-toggle-sidebar)
-    (when (dired-sidebar-showing-sidebar-p)
-      ;; unlock fixed sidebar window width
-      (setq-local window-size-fixed nil))))
+    (add-to-list 'winum-assign-functions #'winum-assign-0-to-sidebar)))
 
 ;;;* move around
 
