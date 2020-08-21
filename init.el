@@ -771,6 +771,13 @@ ORIG-FN is 'evil-delete'. BEG, END, TYPE and ARGS are just passed through."
   ;; toggle the visual line mode
   (defvar my--visual-line-toggle nil)
 
+  (defun my//visual-line-which-key-replacement (entry)
+    "Which key replacement function for the 'visual line mode'."
+    (let ((key (car entry)))
+      (if my--visual-line-toggle
+	`(,key . "[X] visual lines")
+	`(,key . "[ ] visual lines"))))
+
   (defun my/toggle-visual-line ()
     "Toggle 'visual-line-mode' and set custom keybindings for it."
     (interactive)
@@ -795,7 +802,7 @@ ORIG-FN is 'evil-delete'. BEG, END, TYPE and ARGS are just passed through."
 
   (my/leader-key
     :infix my/infix/toggle
-    "l" '(my/toggle-visual-line :which-key "visual lines"))
+    "l" '(my/toggle-visual-line :which-key my//visual-line-which-key-replacement))
 
   ;; |--------------------------------------------------|
   ;; |--- Insert
