@@ -1532,11 +1532,10 @@ It does so without changing the current state and point position."
   :general
   (my/leader-key
     :infix my/infix/toggle
-    "f" '(flycheck-mode :which-key "flycheck"))
+    "f" '(flycheck-mode :which-key my//flycheck-which-key-replacement))
   (my/leader-key
-    :infix my/infix/errors
     :keymaps 'flycheck-mode-map
-    "" '(hydra-flycheck/body :which-key "[errors]"))
+    "e" '(hydra-flycheck/body :which-key "[errors]"))
   :init
   ;; always display the error list at the bottom side of the frame
   ;; occupying a third of the entire height of the frame
@@ -1548,14 +1547,19 @@ It does so without changing the current state and point position."
 		   (side . bottom)
 		   (reusable-frames . visible)
 		   (window-height . 0.33)))
+  (defun my//flycheck-which-key-replacement (entry)
+    "Which key replacement function for 'flycheck'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p flycheck-mode)
+	`(,key . "[X] flycheck")
+	`(,key . "[ ] flycheck"))))
   :config
   (defhydra hydra-flycheck (:hint nil)
     "
 ^Navigation^         ^Other^
 ^^^^--------------------------------
-_n_: next error      _L_: error list
-_N_: previous error
-_z_: center
+_n_: next error      _z_: center
+_N_: previous error  _L_: error list
 ^^^^--------------------------------
 [_q_]: quit
 ^^^^--------------------------------
