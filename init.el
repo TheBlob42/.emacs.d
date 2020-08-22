@@ -19,20 +19,23 @@
 
 ;;;* startup optimizations
 
-;; These tricks and techniques are mostly borrowed from the excellent doom-emacs FAQ
-;; (https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org#how-does-doom-start-up-so-quickly)
+;; Keep the startup time of Emacs low by applying the following techniques:
+;; - use "lexical-binding" (see first line of this file)
+;; - avoid garbage collection during startup
+;; - unset 'file-name-handler-alist' temporarily
+;;
+;; For more information have a look at the following links:
+;; - https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org#how-does-doom-start-up-so-quickly
+;; - https://nullprogram.com/blog/2017/01/30/
 
-;; save 'file-name-handler' reference for after startup reset
+;; save 'file-name-handler' reference for the reset after startup
 (defvar my--file-name-handler-alist file-name-handler-alist)
 
 (setq ;; unset 'file-name-handler-alist' temporarily
       file-name-handler-alist nil
       ;; turning up garbage collection threshold and percentage temporarily
       gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.6
-      ;; increase the amount of data emacs reads from processes
-      ;; [src: https://github.com/emacs-lsp/lsp-mode#performance]
-      read-process-output-max (* 3 1024 1024))
+      gc-cons-percentage 0.6)
 
 (add-hook 'emacs-startup-hook
   (lambda ()
@@ -59,12 +62,12 @@
 (setq
  inhibit-startup-screen t                    ; disable start-up screen
  initial-scratch-message ""                  ; empty the initial *scratch* buffer
- initial-major-mode 'text-mode               ; set scratch buffer major mode
- sentence-end-double-space nil               ; end sentences with just one space
+ initial-major-mode 'text-mode               ; set scratch buffer major mode to 'text-mode'
+ sentence-end-double-space nil               ; end sentences with just one space (default: two)
  create-lockfiles nil                        ; lockfiles don't provide a lot of benefit
  scroll-conservatively most-positive-fixnum  ; always scroll by one line
  ring-bell-function 'ignore                  ; turn off the bell sound
- x-stretch-cursor t                          ; make cursor the width of the character underneath (i.e. full width of a TAB)
+ x-stretch-cursor t                          ; make cursor the width of the character underneath (e.g. full width of a TAB)
  delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
  help-window-select t)                       ; focus new help windows when opened
 
@@ -2014,6 +2017,10 @@ _S_: slurp backward
   (lsp-enable-file-watchers nil)       ; disabe file watchers to prevent warning about too many files
   (lsp-headerline-breadcrumb-enable t) ; show breadcrumbs in headerline
   :init
+  ;; increase the amount of data emacs reads from processes
+  ;; some server responses are in the 800k - 3M range (emacs default: 4k)
+  (setq read-process-output-max (* 3 1024 1024))
+
   (defmacro my/lsp-keybindings (keymap name &rest additional-bindings)
     "Set the default LSP keybindings for the given 'major-mode' KEYMAP.
 Name the prefix for which-key according to the NAME string argument.
