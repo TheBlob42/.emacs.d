@@ -58,6 +58,13 @@ Run `dap-hydra/body'." t nil)
 
 ;;;***
 
+;;;### (autoloads nil "dap-launch" "dap-launch.el" (0 0 0 0))
+;;; Generated autoloads from dap-launch.el
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "dap-launch" '("dap-launch-")))
+
+;;;***
+
 ;;;### (autoloads nil "dap-lldb" "dap-lldb.el" (0 0 0 0))
 ;;; Generated autoloads from dap-lldb.el
 
@@ -135,7 +142,7 @@ toggle it if ARG is `toggle'; disable the mode otherwise.
 
 \(fn &optional ARG)" t nil)
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "dap-mouse" '("dap-tooltip-")))
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "dap-mouse" '("dap-")))
 
 ;;;***
 
@@ -256,6 +263,13 @@ Start a JavaScript REPL to be evaluated in the visiting browser." t nil)
 ;;; Generated autoloads from dap-utils.el
 
 (if (fboundp 'register-definition-prefixes) (register-definition-prefixes "dap-utils" '("dap-utils-")))
+
+;;;***
+
+;;;### (autoloads nil "dap-variables" "dap-variables.el" (0 0 0 0))
+;;; Generated autoloads from dap-variables.el
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "dap-variables" '("dap-variables-")))
 
 ;;;***
 
