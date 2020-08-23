@@ -382,6 +382,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defvar my/infix/search "s")
   (defvar my/infix/tabs "t")
   (defvar my/infix/windows "w")
+  (defvar my/infix/text "x")
   :config
   ;; |--------------------------------------------------|
   ;; |##################################################|
@@ -611,7 +612,14 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
    "m" '(delete-other-windows :which-key "maximize")
    "u" '(winner-undo :which-key "winner undo")
    "x" '(kill-buffer-and-window :which-key "kill buffer & window"))
-  
+
+  ;; |--------------------------------------------------|
+  ;; |--- Text
+
+  (my/leader-key
+    :infix my/infix/text
+    "" '(:ignore t :which-key "Text"))
+
   ;; |--------------------------------------------------|
   ;; |--- Custom
 
@@ -927,6 +935,152 @@ It does so without changing the current state and point position."
 (use-package evil-mc
   :after evil
   :config (global-evil-mc-mode 1))
+
+;;;* spellchecker
+
+;; Emacs handles spell-checking and corrections of words, regions or buffers via the built-in 'ispell' package.
+;; The actual checking is handled by one of three supported external checker programms:
+;; - Hunspell
+;; - GNU Aspell
+;; - Ispell
+;; (emacs will by default choose aspell over hunspell over ispell)
+
+(use-package ispell
+  :ensure nil
+  :config
+  (defun my//get-system-LC_MESSAGES-value ()
+    "Extract the system default language from LC_MESSAGES."
+    (-second-item (s-match "LC_MESSAGES=\"\\(.*?\\)\\..*?\""
+			   (shell-command-to-string "locale"))))
+
+  (defun my//ispell-local-dict-wk-replacement (entry)
+    "Which key replacement function for current local ispell dictionary."
+    (let ((key (car entry))
+	  (dict (if ispell-local-dictionary
+		  ispell-local-dictionary
+		  (my//get-system-LC_MESSAGES-value))))
+      `(,key . ,(concat "local [" dict "]"))))
+
+  (defun my//ispell-global-dict-wk-replacement (entry)
+    "Which key replacement function for current global ispell dictionary."
+    (let ((key (car entry))
+	  (dict (if ispell-dictionary
+		  ispell-dictionary
+		  (my//get-system-LC_MESSAGES-value))))
+      `(,key . ,(concat "global [" dict "]"))))
+
+  (defun my/ispell-change-global-directory ()
+    "Call 'ispell-change-dictionary' with prefix arg to change the global ispell dictionary."
+    (interactive)
+    (let ((current-prefix-arg '(4)))
+      (call-interactively 'ispell-change-dictionary)))
+
+  (my/leader-key
+    :infix my/infix/text
+    "c" '(:ignore t :which-key "Spellcheck")
+    "cd" '(:ignore t :which-key "Dictionaries")
+    "cdl" '(ispell-change-dictionary :which-key my//ispell-local-dict-wk-replacement)
+    "cdg" '(my/ispell-change-global-directory :which-key my//ispell-global-dict-wk-replacement)))
+
+;; Flyspell enables on-the-fly spell-checking within emacs by the means of the 'flyspell' minor mode.
+;; Incorrect words will be highlighted as soon as they are completed or as soon as the cursor hits a new word.
+
+(use-package flyspell
+  :ensure nil
+  :init
+  (defun my//flyspell-mode-wk-replacement (entry)
+    "Which key replacement for the 'flyspell-mode' function."
+    (let ((key (car entry)))
+      (if (bound-and-true-p flyspell-mode)
+	`(,key . "[X] flyspell mode")
+	`(,key . "[ ] flyspell mode"))))
+
+  (defun my//flyspell-prog-mode-wk-replacement (entry)
+    "Which key replacement for the 'flyspell-prog-mode' function."
+    (let ((key (car entry)))
+      (if (bound-and-true-p flyspell-prog-mode)
+	`(,key . "[X] flyspell prog mode")
+	`(,key . "[ ] flyspell prog mode"))))
+  :config
+  ;; flyspell offers the function 'flyspell-goto-next-error' which moves the cursor forward to the next error
+  ;; unfortunately there is no function to move the cursor back to the previous error in the same behavior
+  ;; the solution to this is the following function which is a slightly modified version of the one found on:
+  ;; http://pragmaticemacs.com/emacs/jump-back-to-previous-typo
+  (defun my/flyspell-goto-previous-error (arg)
+    "Go to ARG previous spelling error."
+    (interactive "p")
+    (while (not (= 0 arg))
+      (let ((pos (point))
+            (min (point-min)))
+	(when (and (eq (current-buffer) flyspell-old-buffer-error)
+		   (eq pos flyspell-old-pos-error))
+	  (when (= flyspell-old-pos-error min)
+            ;; goto beginning of buffer
+            (message "Restarting from end of buffer")
+            (goto-char (point-max)))
+	  (backward-word 1)
+          (setq pos (point)))
+	;; seek the next error
+	(while (and (> pos min)
+                    (let ((ovs (overlays-at pos))
+                          (r '()))
+                      (while (and (not r) (consp ovs))
+			(if (flyspell-overlay-p (car ovs))
+                            (setq r t)
+                          (setq ovs (cdr ovs))))
+                      (not r)))
+          (backward-word 1)
+          (setq pos (point)))
+	;; save the current location for next invocation
+	(setq arg (1- arg))
+	(setq flyspell-old-pos-error pos)
+	(setq flyspell-old-buffer-error (current-buffer))
+	(goto-char pos)
+	(if (= pos min)
+            (progn
+              (message "No more miss-spelled word!")
+              (setq arg 0))))))
+
+  (defhydra hydra-spellcheck (:hint nil)
+    "
+^Movement^          ^Actions^             ^Other^
+^^^^--------------------------------------------------
+_n_: next error     _F_: flyspell buffer  _z_: center
+_N_: previous error _c_: correct word
+^^^^--------------------------------------------------
+[_q_]: quit
+^^^^--------------------------------------------------
+"
+    ("n" flyspell-goto-next-error)
+    ("N" my/flyspell-goto-previous-error)
+    ("c" flyspell-correct-at-point)
+    ("F" flyspell-buffer)
+    ("z" evil-scroll-line-to-center)
+    ("q" nil))
+
+  (my/leader-key
+    :infix my/infix/text
+    "ce" '(hydra-spellcheck/body :which-key "{errors}")
+    "cb" '(flyspell-buffer :which-key "check buffer")
+    "cr" '(flyspell-region :which-key "check region")
+    "cf" '(:ignore t :which-key "Flyspell Modes")
+    "cff" '(flyspell-mode :which-key my//flyspell-mode-wk-replacement)
+    "cfp" '(flyspell-prog-mode :which-key my//flyspell-prog-mode-wk-replacement)))
+
+;; Correct misspelled words with flyspell using favorite interface (here: ivy)
+
+(use-package flyspell-correct
+  :after flyspell
+  :general
+  (my/leader-key
+    :infix my/infix/text
+    "cw" '(flyspell-correct-at-point :which-key "check word"))
+  :config
+  ;; guarantee that ispell is correctly initialized
+  (advice-add 'flyspell-correct-at-point :before 'ispell-set-spellchecker-params))
+
+(use-package flyspell-correct-ivy
+  :after flyspell-correct)
 
 ;;;* parentheses
 
