@@ -373,7 +373,6 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defvar my/infix/buffer "b")
   (defvar my/infix/dired "d")
   (defvar my/infix/custom "c")
-  (defvar my/infix/errors "e")
   (defvar my/infix/files "f")
   (defvar my/infix/git "g")
   (defvar my/infix/insert "i")
@@ -489,13 +488,6 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     "u" '(undo-tree-visualize :which-key "undo-tree")
     "d" '(kill-current-buffer :which-key "kill")
     "r" '(my/revert-buffer :which-key "revert"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Errors
-
-  (my/leader-key
-    :infix my/infix/errors
-    "" '(:ignore t :which-key "Errors"))
 
   ;; |--------------------------------------------------|
   ;; |--- Files
