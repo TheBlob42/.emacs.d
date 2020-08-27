@@ -2560,71 +2560,45 @@ If multiple candidates occure, show a seletion via ivy"
 	  (if (> (length project-wrappers) 1)
             (ivy-read "Select the Gradle Wrapper: " project-wrappers)
             (car project-wrappers))))))
-  
-  (defun my//java/extract-gradle-wrapper-error (text)
-    "Extract the gradle error message from TEXT."
-    (-second-item (s-match "What went wrong:\n\\(.*\\)\n" text)))
-  
-  ;; EXAMPLE:
-  ;; --> INPUT
-  ;; Build Tasks
-  ;; -----------
-  ;; build - builds the project
-  ;; test - tests the project
-  ;;
-  ;; --> OUTPUT
-  ;; ("[Build Tasks] build - builds the project" "[Build Tasks] test - tests the project")
-  (defun my//java/build-tasks-desriptions (task-group-string)
-    "Takes a TASK-GROUP-STRING and return the individual task names appended by the appropriate group name."
-    (let* (;; extract the task group name via regex group
-	   (task-group (-second-item (s-match "^\\([a-zA-Z ]+\\)\n-+\n" task-group-string)))
-           ;; extract all task names and delete all "\n"
-	   (tasks (-map (-partial 's-replace-regexp "\\\n" "")
-			;; map with '-first-item' to ignore the regex group values
-			(-map '-first-item (s-match-strings-all "\n[a-zA-Z_0-9][a-zA-Z_0-9-]+?\\( - .*?\\)?\n" task-group-string)))))
-      (-map (-partial 'concat "[" task-group "] ") tasks)))
-  
-  ;; EXAMPLE (for a "gradle task group"):
-  ;;
-  ;; Build Tasks
-  ;; -----------
-  ;; build - this task builds the project
-  ;; test - this task tests the project
-  ;; _some_task_without_documentation
-  ;; [...]
-  ;;
-  (defun my/java/list-gradle-wrapper-tasks ()
-    "Show all available gradlew tasks, select one via ivy and execute it."
+
+  (defun my/java/list-gradlew-tasks ()
+    "Choose an available gradlew task via ivy and execute it."
     (interactive)
-    (let* ((wrapper-path (my//java/get-gradle-wrapper-path))                                                ; get the gradle wrapper path
-           (gradle-tasks (shell-command-to-string (concat "cd " wrapper-path " && ./gradlew tasks --all"))) ; get all gradle tasks
-           (gradle-error (my//java/extract-gradle-wrapper-error gradle-tasks)))                             ; check for possible gradle error
-      (if gradle-error
-	(error (concat "The gradlew script threw an error: " gradle-error))
-	(let* (;; split the "gradle-tasks" into multiple task-groups
-               (task-groups (-map #'-first-item
-				  (s-match-strings-all "^\\([a-zA-Z ]+\\)\n-+\n\\([a-zA-Z-_0-9]+?\\( - .*?\\)?\n\\)+"
-						       gradle-tasks)))
-               ;; append task names with appropriate group
-               (tasks (-flatten (-map #'my//java/build-tasks-desriptions task-groups)))
-               ;; choose a task interactively
-               (chosen-task (ivy-read "Select from list: " tasks))
-               ;; extract the explicit task from chosen task string
-               (task-string (-second-item (s-match "\\[.*?\\] \\([^ ]*\\)\\( - .*\\)?" chosen-task))))
-          (my//java/execute-task task-string wrapper-path)))))
+    (let* ((gradlew-path (my//java/get-gradle-wrapper-path))
+	   (gradlew-task-output (shell-command-to-string (concat "cd " gradlew-path " && ./gradlew tasks --all")))
+	   (gradlew-error (-second-item
+			   (s-match "What went wrong:\n\\(.*\\)\n"
+				    gradlew-task-output))))
+      (if gradlew-error
+	(error (concat "The gradlew script threw an error: " gradlew-error))
+	(let* ((gradlew-task-group-strings (s-match-strings-all
+					    "\\(^[a-zA-Z ]+\\)\n-+\n\\(\\(?:[a-zA-Z0-9-_]+?\\(?: - .*?\\).*\n\\)+\\)"
+					    gradlew-task-output))
+	       (task-items (-flatten
+			    (-map (lambda (x)
+				    (let ((group-name (-second-item x))                           ; extract the task group name
+					  (group-tasks (-filter 's-present?                       ; filter out empty strings
+								(s-split "\n" (-third-item x))))) ; split into separate lines
+				      ;; build formatted task strings: "[group name] task - task description"
+				      (-map (-partial 'concat "[" group-name "] ") group-tasks)))
+				  gradlew-task-group-strings)))
+	       (task (-second-item
+		      (s-match "^\\[.*?\\] \\([^ ]*\\)\\(?: - .*\\)?"
+			       (ivy-read "Select task: " task-items)))))
+	  (my//java/execute-task task gradlew-path)))))
    
-  (defun my/java/execute-gradle-wrapper-task ()
+  (defun my/java/execute-gradlew-task ()
     "Read a gradle-wrapper task from the input and execute it."
     (interactive)
-    (let ((wrapper-path (my//java/get-gradle-wrapper-path))
+    (let ((gradlew-path (my//java/get-gradle-wrapper-path))
           (task (read-string "Gradle Task: ")))
-      (my//java/execute-task task wrapper-path)))
+      (my//java/execute-task task gradlew-path)))
 
   (my/leader-key
     :infix my/infix/custom
     "g" '(:ignore t :which-key "Gradlew")
-    "gl" '(my/java/list-gradle-wrapper-tasks :which-key "list tasks")
-    "gx" '(my/java/execute-gradle-wrapper-task :which-key "execute task"))
+    "gl" '(my/java/list-gradlew-tasks :which-key "list tasks")
+    "gx" '(my/java/execute-gradlew-task :which-key "execute task"))
   :config
   (defun my/java/gradle-refresh ()
     "Navigates to the projects build.gradle file and call 'lsp-java-update-project-configuration'."
