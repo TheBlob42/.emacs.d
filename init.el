@@ -1746,7 +1746,31 @@ _N_: previous error  _L_: error list
   (my/leader-key
     :infix my/infix/insert
     "s" '(yas-insert-snippet :which-key "snippet"))
-  :config (yas-global-mode 1))
+  (my/insert-state-keys
+    "C-o" 'yas-expand)
+  (general-define-key
+   :keymaps 'company-active-map
+   "C-S-o" 'my/toggle-between-company-and-yasnippet)
+  :config
+  ;; this only works with yasnippet already loaded
+  ;; as it is actually a command of the 'company' package
+  (my/insert-state-keys
+    "C-S-o" 'company-yasnippet)
+
+  (defun my/toggle-between-company-and-yasnippet ()
+    (interactive)
+    (if (eq company-backend 'company-yasnippet)
+      (progn
+	(company-abort)
+	(company-complete))
+      (progn
+	(company-abort)
+	(condition-case nil (call-interactively 'company-yasnippet)
+	  ;; catch the error if no snippets are available
+	  (user-error (progn
+			(company-complete)
+			(message "No snippets found!")))))))
+  (yas-global-mode 1))
 
 ;; collection of general useful snippets
 (use-package yasnippet-snippets
