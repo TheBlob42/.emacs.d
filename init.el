@@ -23,10 +23,12 @@
 ;; - use "lexical-binding" (see first line of this file)
 ;; - avoid garbage collection during startup
 ;; - unset 'file-name-handler-alist' temporarily
+;; - set 'frame-inhibit-implied-resize' to t
 ;;
 ;; For more information have a look at the following links:
 ;; - https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org#how-does-doom-start-up-so-quickly
 ;; - https://nullprogram.com/blog/2017/01/30/
+;; - https://old.reddit.com/r/emacs/comments/f3ed3r/how_is_doom_emacs_so_damn_fast/
 
 ;; save 'file-name-handler' reference for the reset after startup
 (defvar my--file-name-handler-alist file-name-handler-alist)
@@ -35,7 +37,9 @@
       file-name-handler-alist nil
       ;; turning up garbage collection threshold and percentage temporarily
       gc-cons-threshold most-positive-fixnum
-      gc-cons-percentage 0.6)
+      gc-cons-percentage 0.6
+      ;; prevent emacs from resizing the (GUI) frame when your newly set font has a different size from the system default
+      frame-inhibit-implied-resize t)
 
 (add-hook 'emacs-startup-hook
   (lambda ()
@@ -62,7 +66,7 @@
 (setq
  inhibit-startup-screen t                    ; disable start-up screen
  initial-scratch-message ""                  ; empty the initial *scratch* buffer
- initial-major-mode 'text-mode               ; set scratch buffer major mode to 'text-mode'
+ initial-major-mode 'fundamental-mode        ; set 'fundamental-mode' for scratch buffer
  sentence-end-double-space nil               ; end sentences with just one space (default: two)
  create-lockfiles nil                        ; lockfiles don't provide a lot of benefit
  scroll-conservatively most-positive-fixnum  ; always scroll by one line
