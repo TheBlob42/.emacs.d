@@ -2213,7 +2213,7 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
        :major-modes t
        "a" '(lsp-execute-code-action :which-key "code action")
        "h" '(:ignore t :which-key "Help/Docs")
-       "hh" '(lsp-ui-doc-glance :which-key "at point")
+       "hh" '(lsp-ui-doc-glance :which-key "glance")
        "=" '(:ignore t :which-key "Formatting")
        "==" '(lsp-format-buffer :which-key "whole buffer")
        "=r" '(lsp-format-region :which-key "region")
