@@ -381,7 +381,8 @@
     (23 'structure)
     (24 'event)
     (25 'operator)
-    (26 'template)))
+    (26 'template)
+    (t 'misc)))
 
 (defun lsp-treemacs-get-icon (icon-name)
   "Get the treemacs ICON using current theme."
@@ -1105,9 +1106,7 @@
      (interactive)
      (ignore args)
      (if-let (node (treemacs-node-at-point))
-         (-let [,(if (cl-rest keys)
-                     keys
-                   (cl-first keys)) (button-get node :item)]
+         (-let [,(cons '&plist keys) (button-get node :item)]
            ,@body)
        (treemacs-pulse-on-failure "No node at point"))))
 

@@ -1,4 +1,4 @@
-(define-package "lsp-dart" "20200814.1405" "Dart support lsp-mode"
+(define-package "lsp-dart" "20200828.101" "Dart support lsp-mode"
   '((emacs "26.1")
     (lsp-treemacs "0.2")
     (lsp-mode "7.0")
@@ -7,7 +7,7 @@
     (dash "2.14.1")
     (pkg-info "0.4")
     (dart-mode "1.0.5"))
-  :commit "437c548d411c9e166b7c658fd45294775235fd5f" :keywords
+  :commit "9036e4b3a7666162fd1a6f8ec339157c28f788f0" :keywords
   '("languages" "extensions")
   :url "https://emacs-lsp.github.io/lsp-dart")
 ;; Local Variables:

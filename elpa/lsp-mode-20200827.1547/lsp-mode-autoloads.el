@@ -133,7 +133,7 @@ toggle it if ARG is `toggle'; disable the mode otherwise.
 ;;;### (autoloads nil "lsp-elixir" "lsp-elixir.el" (0 0 0 0))
 ;;; Generated autoloads from lsp-elixir.el
 
-(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "lsp-elixir" '("lsp-clients-elixir-server-executable")))
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "lsp-elixir" '("lsp-")))
 
 ;;;***
 
@@ -354,6 +354,13 @@ and toggle it if ARG is `toggle'; disable the mode otherwise.
 \(fn &optional ARG)" t nil)
 
 (if (fboundp 'register-definition-prefixes) (register-definition-prefixes "lsp-modeline" '("lsp-")))
+
+;;;***
+
+;;;### (autoloads nil "lsp-nix" "lsp-nix.el" (0 0 0 0))
+;;; Generated autoloads from lsp-nix.el
+
+(if (fboundp 'register-definition-prefixes) (register-definition-prefixes "lsp-nix" '("lsp-nix-server-path")))
 
 ;;;***
 

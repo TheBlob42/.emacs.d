@@ -64,12 +64,6 @@ If it is Flutter project, run `flutter pub outdated` otherwise run
 ;;;### (autoloads nil "lsp-dart-dap" "lsp-dart-dap.el" (0 0 0 0))
 ;;; Generated autoloads from lsp-dart-dap.el
 
-(autoload 'lsp-dart-dap-flutter-hot-restart "lsp-dart-dap" "\
-Hot restart current Flutter debug session." t nil)
-
-(autoload 'lsp-dart-dap-flutter-hot-reload "lsp-dart-dap" "\
-Hot reload current Flutter debug session." t nil)
-
 (if (fboundp 'register-definition-prefixes) (register-definition-prefixes "lsp-dart-dap" '("lsp-dart-dap-")))
 
 ;;;***
