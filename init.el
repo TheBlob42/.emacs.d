@@ -92,6 +92,14 @@
 ;; write the customizations block to another file, but never load it
 (setq custom-file (concat user-emacs-directory "ignore-customizations.el"))
 
+;; NOTE this option migth be removed in the future
+;; fix resizing issues of child frames with GTK3 and GNOME
+
+;; for more information have a look at the following links:
+;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
+;; - https://github.com/tumashu/company-posframe/issues/2
+(setq x-gtk-resize-child-frames 'hide)
+
 ;; |--------------------------------------------------|
 ;; |--- kill ring adaptions
 
