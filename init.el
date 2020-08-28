@@ -1536,6 +1536,10 @@ _N_: previous error _c_: correct word
     :keymaps 'dired-mode-map
     "_" 'my/dired-create-empty-file)
   :config
+  ;; refresh the buffer after deletion to represent the current state
+  (advice-add 'dired-do-flagged-delete :after 'revert-buffer)
+  (advice-add 'dired-do-delete :after 'revert-buffer)
+
   (defun my/kill-all-dired-buffers ()
     "Kill all currently opened 'dired' buffers."
     (interactive)
