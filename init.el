@@ -1602,12 +1602,12 @@ _N_: previous error _c_: correct word
    "p" '(my/dired-ranger-paste :which-key "paste"))
   :config
   (defun my/dired-ranger-copy-add ()
-    "Call 'dired-ranger-copy' with prefix arg to add the selected files to the last copy ring entry."
+    "Call `dired-ranger-copy' with prefix arg to add the selected files to the last copy ring entry."
     (interactive)
     (dired-ranger-copy '(4)))
 
   (defun my/dired-ranger-paste ()
-    "Call 'dired-ranger-paste' with prefix arg to prevent the clipboard to be cleared."
+    "Call `dired-ranger-paste' with prefix arg to prevent the clipboard to be cleared."
     (interactive)
     (dired-ranger-paste '(4))))
 
@@ -1640,11 +1640,11 @@ _N_: previous error _c_: correct word
 (use-package dired-sidebar
   :after dired dired-subtree
   :hook
-  ;; make all dired-sidebar windows resizeable
+  ;; make all sidebar windows resizeable
   (dired-sidebar-mode . (lambda () (setq-local window-size-fixed nil)))
   :custom
   (dired-sidebar-refresh-on-projectile-switch nil) ; do not refresh the sidebar on project switch
-  (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with 'balance-windows')
+  (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with `balance-windows')
   :general
   (my/leader-key
     "r" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
