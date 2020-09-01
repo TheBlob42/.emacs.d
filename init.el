@@ -22,18 +22,18 @@
 ;; Keep the startup time of Emacs low by applying the following techniques:
 ;; - use "lexical-binding" (see first line of this file)
 ;; - avoid garbage collection during startup
-;; - unset 'file-name-handler-alist' temporarily
-;; - set 'frame-inhibit-implied-resize' to t
+;; - unset `file-name-handler-alist' temporarily
+;; - set `frame-inhibit-implied-resize' to t
 ;;
 ;; For more information have a look at the following links:
 ;; - https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org#how-does-doom-start-up-so-quickly
 ;; - https://nullprogram.com/blog/2017/01/30/
 ;; - https://old.reddit.com/r/emacs/comments/f3ed3r/how_is_doom_emacs_so_damn_fast/
 
-;; save 'file-name-handler' reference for the reset after startup
+;; save file name handler reference for the reset after startup
 (defvar my--file-name-handler-alist file-name-handler-alist)
 
-(setq ;; unset 'file-name-handler-alist' temporarily
+(setq ;; unset `file-name-handler-alist' temporarily
       file-name-handler-alist nil
       ;; turning up garbage collection threshold and percentage temporarily
       gc-cons-threshold most-positive-fixnum
@@ -53,7 +53,7 @@
      ;; reset garbage collection values after startup to avoid freezes due to gc
      gc-cons-threshold 16777216
      gc-cons-percentage 0.1
-     ;; reset 'file-name-handler-alist' to avoid complications
+     ;; reset `file-name-handler-alist' to avoid complications
      file-name-handler-alist my--file-name-handler-alist)))
 
 ;;;* basic settings
