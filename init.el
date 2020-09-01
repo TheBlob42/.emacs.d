@@ -465,10 +465,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   ;; |--------------------------------------------------|
   ;; |--- Buffers
 
-  (defun my/switch-to-last-buffer ()
-    "Switch to the last buffer that was visible in the current window."
-    (interactive)
-    (switch-to-buffer nil))
+   (defun my/switch-to-last-buffer ()
+     "Switch to the most recent buffer in this window.
++Repeated calls toggle back and forth between the two most recent buffers."
+     (interactive)
+     (switch-to-buffer (other-buffer (current-buffer) 1)))
 
   (my/leader-key "TAB" '(my/switch-to-last-buffer :which-key "previous buffer"))
 
