@@ -2612,7 +2612,7 @@ If multiple candidates occure, show a seletion via ivy"
       (if gradlew-error
 	(error (concat "The gradlew script threw an error: " gradlew-error))
 	(let* ((gradlew-task-group-strings (s-match-strings-all
-					    "\\(^[a-zA-Z ]+\\)\n-+\n\\(\\(?:[a-zA-Z0-9-_]+?\\(?: - .*?\\).*\n\\)+\\)"
+					    "\\(^[a-zA-Z ]+\\)\n-+\n\\(\\(?:[a-zA-Z0-9-_]+?\\(?: - .*?\\)?.*\n\\)+\\)"
 					    gradlew-task-output))
 	       (task-items (-flatten
 			    (-map (lambda (x)
