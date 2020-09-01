@@ -1762,6 +1762,9 @@ _N_: previous error  _L_: error list
 
 ;;;* snippets
 
+;; YASnippet (Yet Another Snippet) is a template system for emacs
+;; it allows to type a abbreviation and automatically expand it into function templates
+
 ;; basic package for snippet insertion
 (use-package yasnippet
   :general
@@ -1780,6 +1783,8 @@ _N_: previous error  _L_: error list
     "C-S-o" 'company-yasnippet)
 
   (defun my/toggle-between-company-and-yasnippet ()
+    "Switch between the currently used company backend and 'company-yasnippet' (possible in both directions).
+This works by aborting the currently active completion via `company-abort' and calling either `company-complete' or `company-yasnippet'."
     (interactive)
     (if (eq company-backend 'company-yasnippet)
       (progn
@@ -1798,7 +1803,7 @@ _N_: previous error  _L_: error list
 (use-package yasnippet-snippets
   :after yasnippet)
 
-;; java specific snippets
+;; collection of java specific snippets
 (use-package java-snippets
   :after yasnippet)
 
