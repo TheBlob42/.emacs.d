@@ -141,24 +141,26 @@
 
 ;;;** use-package
 
+;; `use-package' is not a package manager but a macro to isolate package configuration
+;; it helps to keep the configuration tidy and performance oriented (lazy loading)
+
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 
-;; to prevent initializing twice
+;; prevent double initialization
 (setq package-enable-at-startup nil)
-;; don't add that 'custom-set-variables' block to the init.el
-(advice-add #'package--ensure-init-file :override #'ignore)
-
 (unless (bound-and-true-p package--initialized)
    (package-initialize))
 
+;; ensure that the `use-package' package is installed
 (unless (package-installed-p 'use-package)
   (package-refresh-contents)
   (package-install 'use-package))
+
 (require 'use-package)
 
 (setq
- use-package-always-ensure t       ; ensure all packages added via 'use-package'
+ use-package-always-ensure t       ; ensure all packages added via `use-package'
  use-package-compute-statistics t) ; enable this to see package loading statistics
 
 ;;;** some basic requirements
