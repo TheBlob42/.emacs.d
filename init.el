@@ -1264,15 +1264,13 @@ _N_: previous error _c_: correct word
   (my/leader-key
     :infix my/infix/files
     "f" '(counsel-find-file :which-key "find file")
-    "r" '(counsel-recentf :which-key "open recent file"))
+    "r" '(counsel-recentf :which-key "recent file"))
   (my/leader-key
     :infix my/infix/insert
-    "p" '(counsel-yank-pop :which-key "from clipboard")
-    "c" '(my/insert-color-hex :which-key "color"))
+    "c" '(my/insert-color-hex :which-key "color hex code"))
   (my/leader-key
     :infix my/infix/search
-    "d" '(my/counsel-ag-choose-directory :which-key "search in dir")
-    "D" '(my/counsel-ag-with-config :which-key "search in dir (config)"))
+    "d" '(my/counsel-ag-transient :which-key "search in directory"))
   (my/leader-key
     :infix my/infix/jump
     "i" '(counsel-semantic-or-imenu :which-key "imenu"))
@@ -1280,26 +1278,31 @@ _N_: previous error _c_: correct word
   (defun my/insert-color-hex ()
     "Insert a W3C color hex code."
     (interactive)
-    (let* ((ivy-inhibit-action t) ; set 'ivy-inhibit-action' to prevent any ivy action
+    (let* ((ivy-inhibit-action t) ; set `ivy-inhibit-action' to prevent any ivy action
 	   (color (counsel-colors-web)))
       (counsel-colors-action-insert-hex color)))
 
-  (defun my/counsel-ag-choose-directory ()
-    "Choose a directory and perform an ag (silver searcher) search operation."
-    (interactive)
-    (counsel-ag nil (counsel-read-directory-name "Search directory: ")))
+  ;; create a transient command for the `counsel-ag' function
+  ;; enable the silver searcher command line arguments as configuration options
 
-  (defun my//ag-transient-infix (&optional args)
-    "Choose a directory. Then call ag on with the given arguments."
-    (interactive (list (transient-args 'my/counsel-ag-with-config)))
+  (defun my/ag-elsewhere-suffix (&optional args)
+    "Choose a directory, then execute `counsel-ag' within it."
+    (interactive (list (transient-args 'my/counsel-ag-transient)))
     (counsel-ag nil                                                ; no initial input
 		(counsel-read-directory-name "Select directory: ") ; choose directory
 		(s-join " " args)))                                ; pass ag arguments
 
+  (transient-define-suffix my//ag-current-directory-suffix (args)
+    "Execute a search with `counsel-ag' in the current default directory."
+    :description (lambda () (concat (propertize default-directory 'face 'font-lock-keyword-face)
+				    " (current default directory)"))
+    (interactive (list (transient-args 'my/counsel-ag-transient)))
+    (counsel-ag nil default-directory (s-join " " args)))
+
   (defun my//ag-select-file-extension (&rest _ignored)
     "Parse all available sg file extension options. Choose one of the available options via ivy."
     (let* ((ext-strings (s-match-strings-all "\\(--.*?\\)\n\s+\\(.*?\\)\n"
-						  (shell-command-to-string "ag --list-file-types")))
+					     (shell-command-to-string "ag --list-file-types")))
 	   ;; calculate max length so we can use it for the alignment of the ivy candidates
 	   (max-length (-max (-map 'seq-length (-map '-second-item ext-strings))))
 	   (formatted-type-strings (-map (lambda (x)
@@ -1319,7 +1322,7 @@ _N_: previous error _c_: correct word
   (transient-define-argument my--ag-file-type ()
     :description "File Types"
     :class 'transient-option
-    :key "-T"
+    :key "T"
     :argument ""
     :reader 'my//ag-select-file-extension)
 
@@ -1339,7 +1342,7 @@ _N_: previous error _c_: correct word
     :reader (lambda (&rest _ignored)
 	      (concat " " (read-string "PATTERN: "))))
 
-  (transient-define-prefix my/counsel-ag-with-config ()
+  (transient-define-prefix my/counsel-ag-transient ()
     "Search Options"
     ["Search Options"
      ("-f" "Follow symlinks" "--follow")
@@ -1350,8 +1353,9 @@ _N_: previous error _c_: correct word
      ("-v" "Invert match" "--invert-match")
      ("-z" "Search contents of compressed (e.g. gzip) files" "--search-zip")
      (my--ag-file-type)]
-    ["Execute"
-     ("RET" "Search" my//ag-transient-infix)])
+    ["Execute search in"
+     ("d" my//ag-current-directory-suffix)
+     ("e" "elsewhere" my/ag-elsewhere-suffix)])
 
   (counsel-mode 1))
 
