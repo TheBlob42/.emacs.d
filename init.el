@@ -1563,9 +1563,11 @@ _N_: previous error _c_: correct word
 	(not (eq major-mode 'dired-mode)))))
 
   (defun my/ivy-switch-to-dired-buffer ()
-    "Call 'ivy-switch-buffer' but show only currently opened dired buffers."
+    "Call `ivy-switch-buffer' but show only currently opened dired buffers."
     (interactive)
-    (let ((ivy-ignore-buffers (append ivy-ignore-buffers '(my//only-dired-buffers))))
+    (let ((ivy-use-virtual-buffers nil)    ; don't show virtual buffers
+	  (ivy-use-ignore-default 'always) ; don't fall back to regular buffer list if no dired buffers exist
+	  (ivy-ignore-buffers (append ivy-ignore-buffers '(my//only-dired-buffers))))
       (ivy-switch-buffer))))
 
 (use-package wdired
