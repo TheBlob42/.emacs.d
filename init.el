@@ -1656,12 +1656,21 @@ _N_: previous error _c_: correct word
 	`(,key . "sidebar close")
 	`(,key . "sidebar open"))))
   :config
-  ;; do not resize the dired-sidebar window after toggeling
+  ;; do not resize the sidebar window after toggeling
   (add-to-list 'window-size-change-functions
                   (lambda (_)
                     (let ((sidebar-window (dired-sidebar-showing-sidebar-p)))
                       (unless (null sidebar-window)
                         (setq dired-sidebar-width (window-width sidebar-window))))))
+
+  ;; make sure that derived dired modes return the correct directory
+  ;; (e.g. `dired-do-rename' in sidebar buffer will now prefill the correct path)
+  (defun my//dired-dwim-target-directory-advice (orig-fn)
+    (ignore orig-fn) ; avoid compiler warnings
+    (if (derived-mode-p 'dired-mode)
+      (dired-current-directory)
+      (orig-fn)))
+  (advice-add 'dired-dwim-target-directory :around 'my//dired-dwim-target-directory-advice)
 
   ;; remap sidebar specific functions
   (my/normal-state-keys
