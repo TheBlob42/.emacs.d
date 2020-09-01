@@ -1824,9 +1824,11 @@ This works by aborting the currently active completion via `company-abort' and c
     "" '(:ignore t :which-key "Editor")
     "c" '(with-editor-finish :which-key "editor finish")
     "k" '(with-editor-cancel :which-key "editor cancel"))
-  :config
+  :custom
   ;; this makes magit ask us wether we want to create a PR after we pushed a new branch to stash
   ;; if the pull request creation is confirmed it will open the corresponding webpage in the browser
+  (magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request)
+  :config
   ;; NOTE this is exclusively working with stash, for other hosts the regex would probably need some adaptions
   (defvar my--magit-process-create-pull-request-regexp
     "remote: Create pull request for.*\nremote: +\\(?1:[^ ]+\\)[^\n]*")
@@ -1837,9 +1839,7 @@ This works by aborting the currently active completion via `company-abort' and c
       (let ((url (match-string 1 string))
             (inhibit-message t))
 	(if (y-or-n-p "Create PR? ")
-            (browse-url (url-encode-url url))))))
-  
-  (setq magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request))
+            (browse-url (url-encode-url url)))))))
 
 ;; sets up evil keybindings for magit
 (use-package evil-magit
@@ -1851,7 +1851,7 @@ This works by aborting the currently active completion via `company-abort' and c
 ;; - dired
 ;; - magit (representing code)
 
-;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see 'browse-at-remote-remote-type-domains')
+;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see `browse-at-remote-remote-type-domains')
 ;; if you have a specific git domain not in that list (e.g. github enterprise) the mapping will not work
 ;; to solve this issue you can set the repository type directly in your git config:
 ;; git config --add browseAtRemote.type "github" (for the current repository only)
