@@ -1475,7 +1475,22 @@ _N_: previous error _c_: correct word
 
 ;;;* projects
 
-;; project management utility
+;; project management within emacs is usually done via the `projectile' package
+;; the concept of a project is simply a folder containing some special file(s)
+
+;; some project types are supported out of the box:
+;; - git
+;; - maven
+;; - mercurial
+;; - etc.
+;; you can also add an emtpy '.projectile' to a folder in order to mark it as a project
+
+;; `projectile' will then provide a nice set of features to operate on a project:
+;; - jump to a file in project
+;; - jump to a project buffer
+;; - switch between projects
+;; - etc.
+
 (use-package projectile
   :defer 1
   :config
@@ -1485,9 +1500,11 @@ _N_: previous error _c_: correct word
   (my/leader-key
     :infix my/infix/projects
     "d" '(projectile-kill-buffers :which-key "kill all project buffers"))
-  (projectile-mode +1))
 
-;; counsel integration for projectile
+  (projectile-mode 1))
+
+;; `counsel-projectile' provides further `ivy' integration for `projectile'
+;; it also defines replacements for existing projectile commands as well as new commands
 (use-package counsel-projectile
   :after (counsel projectile)
   :general
@@ -1495,12 +1512,13 @@ _N_: previous error _c_: correct word
     :infix my/infix/projects
     "p" '(counsel-projectile-switch-project :which-key "switch project")
     "b" '(counsel-projectile-switch-to-buffer :which-key "switch to project buffer")
-    "f" '(counsel-projectile-find-file :which-key "find file")
+    "f" '(counsel-projectile-find-file :which-key "find file in project")
     "s" '(counsel-projectile-ag :which-key "search in project"))
   :config
   (general-define-key
    :keymaps 'counsel-projectile-switch-to-buffer-map
-   "C-d" "C-c C-k") ; kill project buffers (similar to 'ivy-switch-buffer-kill')
+   "C-d" "C-c C-k") ; kill project buffers (similar as `ivy-switch-buffer-kill')
+
   (counsel-projectile-mode))
 
 ;;;* company
