@@ -73,6 +73,7 @@
  ring-bell-function 'ignore                  ; turn off the bell sound
  x-stretch-cursor t                          ; make cursor the width of the character underneath (e.g. full width of a TAB)
  delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
+ load-prefer-newer t                         ; always load the newest version of a file
  help-window-select t)                       ; focus new help windows when opened
 
 (set-default-coding-systems 'utf-8)         ; default to utf-8 encoding
@@ -92,12 +93,12 @@
 ;; write the customizations block to another file, but never load it
 (setq custom-file (concat user-emacs-directory "ignore-customizations.el"))
 
-;; NOTE this option migth be removed in the future
 ;; fix resizing issues of child frames with GTK3 and GNOME
-
 ;; for more information have a look at the following links:
 ;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
 ;; - https://github.com/tumashu/company-posframe/issues/2
+
+;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
 ;; |--------------------------------------------------|
@@ -109,7 +110,7 @@
 
 ;;;** backups
 
-;; Improve the default configuration for file backups
+;; improve the default configuration for file backups
 
 (defvar my-backup-directory (concat user-emacs-directory "backups"))
 ;; create the backup folder if it does not exist yet
@@ -166,13 +167,13 @@
 ;;;** some basic requirements
 
 ;; to ensure everything is working fine you have to install the fonts
-;; necessary by running the command "M-x all-the-icons-install-fonts"
+;; necessary by running the command (M-x) `all-the-icons-install-fonts'
 (use-package all-the-icons)
 
 ;; utility libraries to make emacs lisp a more viable programming language
-(use-package s)
-(use-package dash)
-(use-package dash-functional)
+(use-package s)               ; string manipulation
+(use-package dash)            ; modern list api
+(use-package dash-functional) ; function combinators
 
 ;;;** user config
 
