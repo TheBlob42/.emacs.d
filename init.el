@@ -19,13 +19,13 @@
 
 ;;;* startup optimizations
 
-;; Keep the startup time of Emacs low by applying the following techniques:
+;; keep the startup time of Emacs low by applying the following techniques:
 ;; - use "lexical-binding" (see first line of this file)
 ;; - avoid garbage collection during startup
 ;; - unset `file-name-handler-alist' temporarily
 ;; - set `frame-inhibit-implied-resize' to t
 ;;
-;; For more information have a look at the following links:
+;; for more information have a look at the following links:
 ;; - https://github.com/hlissner/doom-emacs/blob/develop/docs/faq.org#how-does-doom-start-up-so-quickly
 ;; - https://nullprogram.com/blog/2017/01/30/
 ;; - https://old.reddit.com/r/emacs/comments/f3ed3r/how_is_doom_emacs_so_damn_fast/
@@ -101,12 +101,45 @@
 ;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
-;; |--------------------------------------------------|
-;; |--- kill ring adaptions
+;;;** kill-ring adaptions
 
-;; replace kill-region with delete-region (don't write to kill ring)
-;; main reason is to prevent 'M-backspace' from writing to the kill ring
+;; emacs by default does not differentiate between "deleting" and "cutting" text
+;; this means that every delete operation will also save the deleted text to it's clipboard (called `kill-ring')
+;; which will f#$% with people who are used to a more differentiated flow of delete, copy and cut operations
+;; therefore the following adaptions will try make emacs behave more like a traditional text editor
+
+(with-eval-after-load 'evil
+  ;; prevent `evil-delete' from using the kill ring and instead use the "black hole register"
+  ;; see the following link for more information:
+  ;; - https://github.com/syl20bnr/spacemacs/issues/6977#issuecomment-244014379
+
+  (defun my//evil-delete-advice (orig-fn beg end &optional type _ &rest args)
+    "Call `evil-delete' with the optional 'black hole register' (?_) argument.
+ORIG-FN is `evil-delete'. BEG, END, TYPE and ARGS are just passed through."
+    (apply orig-fn beg end type ?_ args))
+
+  (advice-add 'evil-delete :around 'my//evil-delete-advice)
+
+  ;; use "x" in visual state for cutting (copy followed by delete)
+  ;; instead of being just another keybinding for delete
+
+  (defun my/evil-cut ()
+    "Copy the selected region, then delete it."
+    (interactive)
+    (evil-yank (region-beginning) (region-end))
+    (evil-delete-char (region-beginning) (region-end))
+    (evil-force-normal-state))
+
+  (defvar evil-visual-state-map)
+  (define-key evil-visual-state-map "x" 'my/evil-cut))
+
+;; replace `kill-region' with `delete-region' (latter does not write to the kill ring)
+;; the main reason is to prevent "M-<backspace>" from using the kill ring
 (advice-add 'kill-region :override 'delete-region)
+
+;; special case for `org-delete-char' which still writes to the `kill-ring' somehow
+;; we adopt to this case by removing the last entry of the `kill-ring' afterwards
+(advice-add 'org-delete-char :after '(lambda (&rest _) (setq kill-ring (cdr kill-ring))))
 
 ;;;** backups
 
@@ -716,29 +749,6 @@ _V_: shrink   _H_: shrink
   (evil-split-window-below nil)
   (evil-vsplit-window-right nil)
   :config
-  ;; |--------------------------------------------------|
-  ;; |--- kill ring adaptions
-  
-  ;; prevent 'evil-delete from using the kill ring and use the black hole register instead
-  ;; [src: https://github.com/syl20bnr/spacemacs/issues/6977#issuecomment-244014379]
-  (defun my//evil-delete (orig-fn beg end &optional type _ &rest args)
-    "Call 'evil-delete' with the optional 'black hole register' (?_) argument.
-ORIG-FN is 'evil-delete'. BEG, END, TYPE and ARGS are just passed through."
-    (apply orig-fn beg end type ?_ args))
-
-  (advice-add 'evil-delete :around 'my//evil-delete)
-
-  ;; use "x" for cutting (copy then delete) in visual state
-  ;; instead of being just another shortcut for delete
-  (defun my/cut ()
-    "Copy the selected region, then delete it."
-    (interactive)
-    (evil-yank (region-beginning) (region-end))
-    (evil-delete-char (region-beginning) (region-end))
-    (evil-force-normal-state))
-
-  (my/visual-state-keys "x" 'my/cut)
-
   ;; |--------------------------------------------------|
   ;; |--- unbind mouse events
   
@@ -2103,14 +2113,7 @@ _S_: slurp backward
       (org-overview)
       (org-reveal t)
       (org-show-entry)
-      (outline-show-children)))
-
-  ;;; ##### keybindings
-  ;;; ##### configuration
-  ;; 'kill-ring' adaptions (special case for 'org-delete-char')
-  ;; since 'evil-org-delete-char' can use 'org-delete-char' internally as a fallback, we have to advice the function in order
-  ;; to prevent it from adding to the 'kill-ring', we do so by manually removing the last entry from the 'kill-ring' afterwards
-  (advice-add 'org-delete-char :after '(lambda (&rest _) (setq kill-ring (cdr kill-ring)))))
+      (outline-show-children))))
 
 (use-package evil-org
   :after (org evil)
