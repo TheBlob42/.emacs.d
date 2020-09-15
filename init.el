@@ -503,7 +503,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 
    (defun my/switch-to-last-buffer ()
      "Switch to the most recent buffer in this window.
-+Repeated calls toggle back and forth between the two most recent buffers."
+Repeated calls toggle back and forth between the two most recent buffers."
      (interactive)
      (switch-to-buffer (other-buffer (current-buffer) 1)))
 
@@ -791,7 +791,7 @@ _V_: shrink   _H_: shrink
     "M-o" 'evil-open-below
     "M-O" 'evil-open-above
     ;; alternative to 'evil-escape'
-    ;; especially useful for the usage with evil-mc
+    ;; especially useful for the usage with `evil-mc'
     "C-g" 'evil-normal-state)
 
   ;; |--------------------------------------------------|
@@ -1086,7 +1086,7 @@ _N_: previous error _c_: correct word
 
   (my/leader-key
     :infix my/infix/text
-    "ce" '(hydra-spellcheck/body :which-key "{errors}")
+    "ce" '(hydra-spellcheck/body :which-key "[errors]")
     "cb" '(flyspell-buffer :which-key "check buffer")
     "cr" '(flyspell-region :which-key "check region")
     "cf" '(:ignore t :which-key "Flyspell Modes")
