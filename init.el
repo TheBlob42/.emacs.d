@@ -688,7 +688,6 @@ Repeated calls toggle back and forth between the two most recent buffers."
    :infix my/infix/windows
    "" '(:ignore t :which-key "Windows")
    "m" '(delete-other-windows :which-key "maximize")
-   "u" '(winner-undo :which-key "winner undo")
    "x" '(kill-buffer-and-window :which-key "kill buffer & window"))
 
   ;; |--------------------------------------------------|
@@ -1177,6 +1176,15 @@ _N_: previous error _c_: correct word
   :hook ((prog-mode . rainbow-delimiters-mode)))
 
 ;;;* windows
+
+(use-package winner
+  :ensure nil
+  :config
+  ;; activate `winner' minor-mode to record window configuration changes
+  (winner-mode)
+  (my/leader-key
+    :infix my/infix/windows
+    "u" '(winner-undo :which-key "winner undo")))
 
 ;; mark windows with numbers for easier navigation
 (use-package winum
@@ -2925,6 +2933,24 @@ _k_: previous visible   _H_: hide all      _z_: center
   (my/leader-key
     :infix my/infix/toggle
     "n" '(display-line-numbers-mode :which-key "line numbers")))
+
+;; highlight the current line
+(use-package hl-line
+  :ensure nil
+  :config
+  ;; highlight the current line by default
+  (global-hl-line-mode)
+
+  (defun my//global-hl-line-wk-replacement (entry)
+    "Which key replacement function for the global hl-line mode."
+    (let ((key (car entry)))
+      (if (bound-and-true-p global-hl-line-mode)
+	`(,key . "[X] line highlighting")
+	`(,key . "[ ] line highlighting"))))
+
+  (my/leader-key
+    :infix my/infix/toggle
+    "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
 
 ;;;** external packages
 
