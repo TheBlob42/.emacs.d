@@ -2927,6 +2927,8 @@ _k_: previous visible   _H_: hide all      _z_: center
   :ensure nil
   :hook ((prog-mode . display-line-numbers-mode))
   :custom
+  ;; count number of lines for the needed line-number width
+  (display-line-numbers-width-start t)
   ;; don't shrink available space to prevent "flickering"
   (display-line-numbers-grow-only t)
   :general
