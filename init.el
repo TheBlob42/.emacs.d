@@ -60,11 +60,10 @@
 
 ;;;** sane defaults
 
-;; answering with 'y' or 'n' is sufficient
-(defalias 'yes-or-no-p 'y-or-n-p)
+;; set some general configuration options to make the emacs experience more enjoyable
 
 (setq
- inhibit-startup-screen t                    ; disable start-up screen
+ inhibit-startup-screen t                    ; disable the start-up screen
  initial-scratch-message ""                  ; empty the initial *scratch* buffer
  initial-major-mode 'fundamental-mode        ; set 'fundamental-mode' for scratch buffer
  sentence-end-double-space nil               ; end sentences with just one space (default: two)
@@ -73,24 +72,30 @@
  ring-bell-function 'ignore                  ; turn off the bell sound
  x-stretch-cursor t                          ; make cursor the width of the character underneath (e.g. full width of a TAB)
  delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
- load-prefer-newer t                         ; always load the newest version of a file
+ load-prefer-newer t                         ; always load the newest version of an elisp file
  help-window-select t)                       ; focus new help windows when opened
 
 (set-default-coding-systems 'utf-8)         ; default to utf-8 encoding
 (add-to-list 'default-frame-alist
 	     '(fullscreen . maximized))     ; maximize the emacs window on startup
-(global-hl-line-mode)                       ; highlight current line
+
+;; answering with 'y' or 'n' is sufficient
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;; remove not needed GUI elements
 (menu-bar-mode -1)
 (tool-bar-mode -1)
-(toggle-scroll-bar -1)
+
+;; never display vertical & horizontal scroll-bars
+;; (for the current as well as new frames)
+(set-scroll-bar-mode nil)
+(toggle-horizontal-scroll-bar -1)
+
+;; do not show tooltips in pop-up windows
 (tooltip-mode -1)
 
-;; activate 'winner-mode' to enable window layout undo/redo
-(winner-mode)
-
-;; write the customizations block to another file, but never load it
+;; write the customization block to another file (but never load it)
+;; this prevents the 'init.el' file to getting cluttered with "customization" code
 (setq custom-file (concat user-emacs-directory "ignore-customizations.el"))
 
 ;; fix resizing issues of child frames with GTK3 and GNOME
@@ -98,7 +103,7 @@
 ;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
 ;; - https://github.com/tumashu/company-posframe/issues/2
 
-;; NOTE this option migth be removed in the future
+;; NOTE this option might be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
 ;;;** kill-ring adaptions
@@ -2908,13 +2913,6 @@ _k_: previous visible   _H_: hide all      _z_: center
     "" '(:ignore t :which-key "Package Menu")
     "f" '(package-menu-filter-by-name :which-key "filter by name")
     "c" '(package-menu-clear-filter :which-key "clear filters")))
-
-;; disable scroll bars (especially on new frames)
-(use-package scroll-bar
-  :ensure nil
-  :custom
-  (scroll-bar-mode nil)
-  (horizontal-scroll-bar-mode nil))
 
 ;; display line numbers in buffers
 (use-package display-line-numbers
