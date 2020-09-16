@@ -2954,6 +2954,11 @@ _k_: previous visible   _H_: hide all      _z_: center
     :infix my/infix/toggle
     "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
 
+;; move the mouse cursor out of the way
+(use-package avoid
+  :ensure nil
+  :config (mouse-avoidance-mode 'banish))
+
 ;;;** external packages
 
 ;; restart emacs from within emacs
