@@ -86,7 +86,7 @@
 (menu-bar-mode -1)
 (tool-bar-mode -1)
 
-;; never display vertical & horizontal scroll-bars
+;; never display vertical & horizontal scrollbars
 ;; (for the current as well as new frames)
 (set-scroll-bar-mode nil)
 (toggle-horizontal-scroll-bar -1)
@@ -103,7 +103,7 @@
 ;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
 ;; - https://github.com/tumashu/company-posframe/issues/2
 
-;; NOTE this option might be removed in the future
+;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
 ;;;** kill-ring adaptions
