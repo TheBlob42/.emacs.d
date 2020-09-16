@@ -163,15 +163,39 @@ ORIG-FN is `evil-delete'. BEG, END, TYPE and ARGS are just passed through."
 
 ;;;** fonts
 
-;; use 'Source Code Pro' as emacs default font
-(set-face-attribute 'default nil :font "Source Code Pro Medium" :height 110)
+;; set custom fonts for the emacs GUI application
+;; the fonts are configured by setting some emacs standard faces for text appearance
 
-;; to make sure that everything uses your desired font family we configure the fixed-pitch (monospaced) and variable-pitch (proportional spacing) faces
-(set-face-attribute 'fixed-pitch nil :font "Source Code Pro Medium" :height 110)
-(set-face-attribute 'variable-pitch nil :font "Source Code Pro Medium" :height 110)
+;; | face             | description                                          |
+;; |------------------|------------------------------------------------------|
+;; | `default'        | main typeface for text that doesn't specify any face |
+;; | `fixed-pitch'    | face that forces the use of a fixed width font       |
+;; | `variable-pitch' | face that forces the use of a variable-width-font    |
 
-;; set the fall back font [src: https://idiocy.org/emacs-fonts-and-fontsets.html]
-(set-fontset-font t 'latin "Noto Sans")
+;; NOTE if one of the following fonts is not installed, a warning will be shown on startup
+(let ((fixed-width-font    "Source Code Pro")
+      (variable-width-font "Alegreya Sans")
+      (fallback-font       "Noto Sans")
+      (error-msg "The font '%s' is not installed on your system. Install it to ensure a proper configuration."))
+
+  ;; set a monospaced font for the `default' and `fixed-pitch' faces to ensure a correct alignment of text
+  (if (find-font (font-spec :name fixed-width-font))
+    (progn
+      (set-face-attribute 'default nil :font fixed-width-font :height 110 :weight 'normal)
+      (set-face-attribute 'fixed-pitch nil :font fixed-width-font :height 110 :weight 'normal))
+    (warn (format error-msg fixed-width-font)))
+
+  ;; set a proportionately spaced font for the `varible-pitch' face for a better readability (e.g. in `org-mode')
+  (if (find-font (font-spec :name variable-width-font))
+    (set-face-attribute 'variable-pitch nil :font variable-width-font :height 140 :weight 'semi-light)
+    (warn (format error-msg variable-width-font)))
+
+  ;; a fallback fontset is defined in the case a font does not provide certain glyphs
+  ;; for a detailed explanation check the following link:
+  ;; - https://idiocy.org/emacs-fonts-and-fontsets.html
+  (if (find-font (font-spec :name fallback-font))
+    (set-fontset-font t 'latin fallback-font)
+    (warn (format error-msg fallback-font))))
 
 ;;;** use-package
 
