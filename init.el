@@ -992,8 +992,8 @@ It does so without changing the current state and point position."
 
 ;;;* spellchecker
 
-;; Emacs handles spell-checking and corrections of words, regions or buffers via the built-in 'ispell' package.
-;; The actual checking is handled by one of three supported external checker programms:
+;; emacs handles spell-checking and corrections of words, regions or buffers via the built-in `ispell' package.
+;; the actual checking is handled by one of three supported external checker programs:
 ;; - Hunspell
 ;; - GNU Aspell
 ;; - Ispell
@@ -1008,7 +1008,7 @@ It does so without changing the current state and point position."
 			   (shell-command-to-string "locale"))))
 
   (defun my//ispell-local-dict-wk-replacement (entry)
-    "Which key replacement function for current local ispell dictionary."
+    "Which key replacement function for current local `ispell' dictionary."
     (let ((key (car entry))
 	  (dict (if ispell-local-dictionary
 		  ispell-local-dictionary
@@ -1016,7 +1016,7 @@ It does so without changing the current state and point position."
       `(,key . ,(concat "local [" dict "]"))))
 
   (defun my//ispell-global-dict-wk-replacement (entry)
-    "Which key replacement function for current global ispell dictionary."
+    "Which key replacement function for current global `ispell' dictionary."
     (let ((key (car entry))
 	  (dict (if ispell-dictionary
 		  ispell-dictionary
@@ -1024,7 +1024,7 @@ It does so without changing the current state and point position."
       `(,key . ,(concat "global [" dict "]"))))
 
   (defun my/ispell-change-global-directory ()
-    "Call 'ispell-change-dictionary' with prefix arg to change the global ispell dictionary."
+    "Call `ispell-change-dictionary' with prefix arg to change the global `ispell' dictionary."
     (interactive)
     (let ((current-prefix-arg '(4)))
       (call-interactively 'ispell-change-dictionary)))
@@ -1036,30 +1036,29 @@ It does so without changing the current state and point position."
     "cdl" '(ispell-change-dictionary :which-key my//ispell-local-dict-wk-replacement)
     "cdg" '(my/ispell-change-global-directory :which-key my//ispell-global-dict-wk-replacement)))
 
-;; Flyspell enables on-the-fly spell-checking within emacs by the means of the 'flyspell' minor mode.
-;; Incorrect words will be highlighted as soon as they are completed or as soon as the cursor hits a new word.
-
+;; `flyspell' enables on-the-fly spell-checking within emacs
+;; incorrect words will be highlighted as soon as they are completed or as soon as the cursor hits a new word
 (use-package flyspell
   :ensure nil
   :init
   (defun my//flyspell-mode-wk-replacement (entry)
-    "Which key replacement for the 'flyspell-mode' function."
+    "Which key replacement for the `flyspell-mode' function."
     (let ((key (car entry)))
       (if (bound-and-true-p flyspell-mode)
 	`(,key . "[X] flyspell mode")
 	`(,key . "[ ] flyspell mode"))))
 
   (defun my//flyspell-prog-mode-wk-replacement (entry)
-    "Which key replacement for the 'flyspell-prog-mode' function."
+    "Which key replacement for the `flyspell-prog-mode' function."
     (let ((key (car entry)))
       (if (bound-and-true-p flyspell-prog-mode)
 	`(,key . "[X] flyspell prog mode")
 	`(,key . "[ ] flyspell prog mode"))))
   :config
-  ;; flyspell offers the function 'flyspell-goto-next-error' which moves the cursor forward to the next error
+  ;; `flyspell' offers the function `flyspell-goto-next-error' which moves the cursor forward to the next error
   ;; unfortunately there is no function to move the cursor back to the previous error in the same behavior
   ;; the solution to this is the following function which is a slightly modified version of the one found on:
-  ;; http://pragmaticemacs.com/emacs/jump-back-to-previous-typo
+  ;; - http://pragmaticemacs.com/emacs/jump-back-to-previous-typo
   (defun my/flyspell-goto-previous-error (arg)
     "Go to ARG previous spelling error."
     (interactive "p")
@@ -1069,7 +1068,7 @@ It does so without changing the current state and point position."
 	(when (and (eq (current-buffer) flyspell-old-buffer-error)
 		   (eq pos flyspell-old-pos-error))
 	  (when (= flyspell-old-pos-error min)
-            ;; goto beginning of buffer
+            ;; go to beginning of buffer
             (message "Restarting from end of buffer")
             (goto-char (point-max)))
 	  (backward-word 1)
@@ -1121,8 +1120,7 @@ _N_: previous error _c_: correct word
     "cff" '(flyspell-mode :which-key my//flyspell-mode-wk-replacement)
     "cfp" '(flyspell-prog-mode :which-key my//flyspell-prog-mode-wk-replacement)))
 
-;; Correct misspelled words with flyspell using favorite interface (here: ivy)
-
+;; correct misspelled words with `flyspell' using favorite interface (here: `ivy')
 (use-package flyspell-correct
   :after flyspell
   :general
@@ -1130,7 +1128,7 @@ _N_: previous error _c_: correct word
     :infix my/infix/text
     "cw" '(flyspell-correct-at-point :which-key "check word"))
   :config
-  ;; guarantee that ispell is correctly initialized
+  ;; guarantee that `ispell' is correctly initialized
   (advice-add 'flyspell-correct-at-point :before 'ispell-set-spellchecker-params))
 
 (use-package flyspell-correct-ivy
