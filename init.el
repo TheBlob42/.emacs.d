@@ -261,6 +261,10 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 
 ;;;** theme
 
+;; properly configure a "light" and a "dark" color theme for emacs
+;; - make it easy to switch between both themes (without the need to touch the configuration)
+;; - startup emacs with the appropriate theme depending on the current time
+
 ;; light theme
 (use-package modus-operandi-theme
   :custom
@@ -268,9 +272,9 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (modus-operandi-theme-distinct-org-blocks t)
   :config
   (defun my/load-modus-operandi-theme ()
-    "Load the 'modus-operandi' theme with some slight modifications."
+    "Load the `modus-operandi-theme' with some slight modifications."
     (load-theme 'modus-operandi t)
-    ;; change term white to gray to make it more readable on the light background
+    ;; change `term-color-white' to gray to make it more readable on the light background
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
 
@@ -281,27 +285,29 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (modus-vivendi-theme-distinct-org-blocks t)
   :config
   (defun my/load-modus-vivendi-theme ()
-    "Load the 'modus-vivendi' theme with some slight modifications."
+    "Load the `modus-vivendi-theme' with some slight modifications."
     (load-theme 'modus-vivendi t)
-    ;; we have to manually reset the 'hl-line' color to its origin
+    ;; we have to manually reset the `hl-line-mode' color to its origin
     (with-eval-after-load "hl-line"
       (set-face-attribute 'hl-line nil :background "#151823"))
-    ;; reset the color change from 'modus-operandi-theme' for 'term-color-white'
+    ;; reset the color change from `modus-operandi-theme' for `term-color-white'
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "white")))
+
+  ;; general theme functionality
 
   (defvar my--dark-mode-enabled nil
     "State indicator if the dark mode theme is currently enabled")
 
   (defun my/toggle-dark-mode ()
-    "Switches the theme from light to dark and vice versa."
+    "Toggle between light and dark theme."
     (interactive)
     (if my--dark-mode-enabled
       (my/load-modus-operandi-theme)
       (my/load-modus-vivendi-theme))
     (setq my--dark-mode-enabled (not my--dark-mode-enabled)))
 
-  (defun my//dark-mode-which-key-replacement (entry)
+  (defun my//dark-mode-wk-replacement (entry)
     "Which key replacement function that shows the currently present state."
     (let ((key (car entry)))
       (if my--dark-mode-enabled
@@ -523,7 +529,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (my/leader-key
     :infix my/infix/toggle
     "" '(:ignore t :which-key "Toggles")
-    "d" '(my/toggle-dark-mode :which-key my//dark-mode-which-key-replacement)
+    "D" '(my/toggle-dark-mode :which-key my//dark-mode-wk-replacement)
     "w" '(whitespace-mode :which-key "whitespaces")
     "t" '(toggle-truncate-lines :which-key "truncated lines"))
 
