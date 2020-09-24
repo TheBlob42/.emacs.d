@@ -1599,10 +1599,13 @@ _N_: previous error _c_: correct word
 
 ;;;* dired
 
+;; [DIR]ectory [ED]itor for emacs
 (use-package dired
   :ensure nil
   :hook (dired-mode . auto-revert-mode) ; automatically revert buffer on file changes
-  :custom (dired-dwim-target t)         ; make copying files with split windows easier
+  :custom
+  ;; chose other open dired windows as default target for copy and move operations
+  (dired-dwim-target t)
   :general
   (my/leader-key
     :infix my/infix/dired
@@ -1613,6 +1616,26 @@ _N_: previous error _c_: correct word
     :keymaps 'dired-mode-map
     "_" 'my/dired-create-empty-file)
   :config
+  ;; remap the default `dired-do-copy' and `dired-do-delete' functions to our own implementations
+  ;; these revert the buffer afterwards to ensure that the dired buffer content is always up to date
+  (defun my/dired-do-copy ()
+    "Replacement function for `dired-do-copy' which does revert the buffer afterwards."
+    (interactive)
+    (dired-do-copy)
+    (revert-buffer))
+
+  (defun my/dired-do-delete ()
+    "Replacement function for `dired-do-delete' which does revert the buffer afterwards."
+    (interactive)
+    (dired-do-delete)
+    (revert-buffer))
+
+  (my/normal-state-keys
+    :keymaps 'dired-mode-map
+    [remap dired-do-copy] 'my/dired-do-copy
+    [remap dired-do-delete] 'my/dired-do-delete)
+
+  ;; some utility functions for dired
   (defun my/kill-all-dired-buffers ()
     "Kill all currently opened 'dired' buffers."
     (interactive)
