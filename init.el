@@ -274,6 +274,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defun my/load-modus-operandi-theme ()
     "Load the `modus-operandi-theme' with some slight modifications."
     (load-theme 'modus-operandi t)
+    ;; reset powerline faces for light theme
+    (with-eval-after-load "spaceline"
+      (set-face-background 'powerline-active1 "gray80")
+      (set-face-background 'powerline-inactive1 "gray87")
+      (powerline-reset))
     ;; change `term-color-white' to gray to make it more readable on the light background
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
@@ -287,6 +292,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defun my/load-modus-vivendi-theme ()
     "Load the `modus-vivendi-theme' with some slight modifications."
     (load-theme 'modus-vivendi t)
+    ;; reset powerline faces for dark theme
+    (with-eval-after-load "spaceline"
+      (set-face-background 'powerline-active1 "gray30")
+      (set-face-background 'powerline-inactive1 "gray20")
+      (powerline-reset))
     ;; we have to manually reset the `hl-line-mode' color to its origin
     (with-eval-after-load "hl-line"
       (set-face-attribute 'hl-line nil :background "#151823"))
@@ -329,116 +339,158 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 
 ;;;** modeline
 
-(setq-default mode-line-format
-              (list
-	       " "
-	       ;; display the 'winum' window number
-	       '(:eval (propertize (winum-get-number-string (selected-window))
-				   'face 'font-lock-keyword-face))
-	       " "
-	       " "
-	       ;; display the buffer name
-	       ;; for "non-star-buffers" show the modification status by changing the font color and add an asterisk icon
-	       '(:eval (let ((is-star-buffer? (s-matches? "^\s*\\*" (buffer-name))))
-			 (concat
-			  (when (and (not is-star-buffer?)
-				     (buffer-modified-p))
-			    (concat
-			     (all-the-icons-faicon "asterisk" :face 'all-the-icons-orange :v-adjust -0.1)
-			     " "))
-			  
-			  (propertize "%b" 'face
-				      ;; never mark star-buffers as modified
-				      (if is-star-buffer?
-					'font-lock-string-face
-					(if (buffer-modified-p)
-					  'font-lock-warning-face
-					  'font-lock-string-face))))))
-	       " "
-	       ;; display cursor position in document (in % from top)
-	       (propertize "%p" 'face 'font-lock-constant-face)
-	       ;; display the flycheck error/warning count (if there are any)
-	       '(:eval (my//flycheck-status))
-	       ;; display the current LSP status
-	       '(:eval (when (bound-and-true-p lsp-mode)
-			 (concat
-			  " "
-			  (if (lsp-workspaces)
-			    (all-the-icons-faicon "rocket" :face 'all-the-icons-green :v-adjust -0.07)
-			    (all-the-icons-faicon "rocket" :face 'all-the-icons-red :v-adjust -0.07))
-			  (lsp-mode-line))))
-	       ;; display the current debug state (dap-mode)
-	       '(:eval (when (and (bound-and-true-p lsp-mode)
-				  (bound-and-true-p dap-mode))
-			 (when-let ((session (dap--cur-session)))
-			   (when (dap--session-running session)
-			     (concat
-			      " "
-			      (all-the-icons-faicon "bug" :face 'all-the-icons-purple-alt :v-adjust -0.1))))))
-	       ;; --> align the following to the right
-	       '(:eval (let ((info-string
-			      (concat
-			       ;; show the current VC branch
-			       (when vc-mode
-				 (concat
-				  " "
-				  ;; use 'substring' to strip the "Git: " prefix from the branch name
-				  (substring vc-mode 5)))
-			       ;; for "non-star-buffer" show the current buffer size
-			       (when (not (s-matches? "^\s*\\*" (buffer-name)))
-				 (concat
-				  " "
-				  (propertize "%I" 'face 'font-lock-constant-face)))
-			       ;; show the appropriate major-mode icon
-			       " "
-			       (cond
-				((equal 'java-mode major-mode) "Java")
-				((equal 'wdired-mode major-mode) (all-the-icons-faicon "pencil" :v-adjust -0.1))
-				((-contains? '(js-mode text-mode) major-mode) (all-the-icons-icon-for-mode major-mode :v-adjust 0))
-				(t (all-the-icons-icon-for-mode major-mode :v-adjust -0.1)))
-			       "  ")))
-			 (concat
-			  (propertize
-			   " " 'display
-			   `((space :align-to (- (+ right right-fringe right-margin)
-						 ,(+ 3 (string-width info-string))))))
-			  info-string)))))
+;; style and configure the modeline with `spaceline'
+;;
+;; the following information is displayed (in order of appearance left to right):
+;; - `winum' window number
+;; - buffer modification status
+;; - buffer size
+;; - buffer id
+;; - cursor position in document
+;; - `flycheck' warning/error count
+;; - `lsp-mode' status
+;; - `dap-mode' status
+;; - current vc branch
+;; - current major mode
 
-(defun my//flycheck-status ()
-  "If flycheck-mode is enabled, check for the current status and show an appropriate icon plus the number of warnings/errors (if any are present)."
-  (when (bound-and-true-p flycheck-mode)
-    ;; declare variables and functions to prevent compiler warnings
-    (defvar flycheck-last-status-change)
-    (defvar flycheck-current-errors)
-    (declare-function flycheck-count-errors "flycheck" t)
-    (declare-function all-the-icons-faicon "all-the-icons" t)
-    (concat
-     " "
-     (pcase flycheck-last-status-change
-       (`finished (let* ((all-errors (flycheck-count-errors flycheck-current-errors))
-			 (warnings
-			  ;; check for entries that contain the keyword "warning", then sum up all the ocurrences
-			  ;; (e.g. "lsp-flycheck-warning-unnecessary", "lsp-flycheck-warning-deprecated")
-			  (-reduce-from '+ 0 (-map 'cdr (-filter (-compose (-partial 's-contains? "warning")
-									   'symbol-name
-									   '-first-item) all-errors))))
-			 (errors (assq 'error all-errors)))
-		    (cond
-		     (errors (concat
-			      (all-the-icons-faicon "ban" :face '(:foreground "red") :v-adjust -0.05)
-			      (propertize (format ":%s" (cdr errors))
-					  'face '(:foreground "red" :weight bold))))
-		     ((> warnings 0) (concat
-				      (all-the-icons-faicon "exclamation-circle" :face '(:foreground "dark orange") :v-adjust -0.05)
-				(propertize (format ":%s" warnings)
-					    'face '(:foreground "dark orange" :weight bold))))
-		     (t (all-the-icons-faicon "check-circle" :face '(:foreground "dark green") :v-adjust -0.05)))))
-       (`running (all-the-icons-faicon "spinner" :face 'all-the-icons-blue :v-adjust -0.1))
-       (`no-checker "")
-       (`not-checked (all-the-icons-faicon "frown-o" :v-adjust -0.1))
-       (`errored (all-the-icons-faicon "exclamation" :v-adjust -0.1))
-       (`interrupted (all-the-icons-faicon "plug" :v-adjust -0.1))
-       (`suspicious (all-the-icons-faicon "bug" :v-adjust -0.1))))))
+;; base spaceline package
+(use-package spaceline
+  :custom
+  ;; change the highlight face depending on the modification status
+  (spaceline-highlight-face-func 'spaceline-highlight-face-modified)
+  :config
+  (setq-default mode-line-format '("%e" (:eval (spaceline-ml-main)))))
+
+;; predefined spaceline segments
+(use-package spaceline-segments
+  :ensure spaceline
+  :config
+  ;; utility functions
+  (defmacro my//propertize-icon (icon family &rest properties)
+    "Format an ICON of FAMILY to correctly work inside a `spaceline' segment.
+The remaining arguments are face PROPERTIES (key value pairs) to add to the result.
+
+The following snippet will insert a purple 'FontAwesome' icon that correctly
+inherits the other properties from the parent face:
+
+    (my//propertize-icon (all-the-icons-faicon \"bug\")
+                         (all-the-icons-faicon-family)
+                         :foreground \"purple\")"
+    (let ((f (eval family)))
+      `(propertize ,icon 'face '((t (,@properties :family ,f))))))
+
+  (defun my//flycheck-status ()
+    "If `flycheck-mode' is enabled, check for the current status and show an appropriate icon plus the number of warnings/errors (if any are present)."
+    (when (bound-and-true-p flycheck-mode)
+      ;; declarations to prevent compiler warnings
+      (defvar flycheck-last-status-change)
+      (defvar flycheck-current-errors)
+
+      (pcase flycheck-last-status-change
+	(`finished (if-let ((all-errors (flycheck-count-errors flycheck-current-errors)))
+		       (let* ((warnings
+			       ;; check for entries that contain the keyword "warning", then sum up all the occurrences
+			       ;; (e.g. "lsp-flycheck-warning-unnecessary", "lsp-flycheck-warning-deprecated")
+			       (-sum (-map 'cdr (-filter (-compose (-partial 's-contains? "warning")
+								   'symbol-name
+								   '-first-item) all-errors))))
+			      (warnings-info (when (> warnings 0)
+					       (concat (my//propertize-icon (all-the-icons-faicon "exclamation-circle" :v-adjust 0)
+									    (all-the-icons-faicon-family)
+									    :foreground "dark orange")
+						       ;; insert a tiny bit of space between the warning icon and count
+						       (propertize " " 'face '((t (:height 0.2))))
+						       (propertize (format "%s" warnings)
+								   'face '((t (:foreground "dark orange" :weight bold)))))))
+			      (errors (assq 'error all-errors))
+			      (errors-info (when errors
+					     (concat (my//propertize-icon (all-the-icons-faicon "ban" :v-adjust 0)
+									  (all-the-icons-faicon-family)
+									  :foreground "red")
+						     ;; insert a tiny bit of space between the error icon and count
+						     (propertize " " 'face '((t (:height 0.2))))
+						     (propertize (format "%s" (cdr errors))
+								 'face '((t (:foreground "red" :weight bold))))))))
+			 (s-join " " (-non-nil (list warnings-info errors-info))))
+		     (my//propertize-icon (all-the-icons-faicon "check-circle" :v-adjust -0.1)
+					  (all-the-icons-faicon-family)
+					  :foreground "dark green")))
+	(`running (my//propertize-icon (all-the-icons-faicon "spinner" :v-adjust -0.1)
+				       (all-the-icons-faicon-family)
+				       :foreground "#29aeff"))
+	(`no-checker "")
+	(`not-checked (my//propertize-icon (all-the-icons-faicon "frown-o" :v-adjust -0.1)
+					   (all-the-icons-faicon-family)))
+	(`errored     (my//propertize-icon (all-the-icons-faicon "exclamation" :v-adjust -0.1)
+					   (all-the-icons-faicon-family)))
+	(`interrupted (my//propertize-icon (all-the-icons-faicon "plug" :v-adjust -0.1)
+					   (all-the-icons-faicon-family)))
+	(`suspicious  (my//propertize-icon (all-the-icons-faicon "bug" :v-adjust -0.1)
+					   (all-the-icons-faicon-family))))))
+
+  ;; custom spaceline segments
+  (spaceline-define-segment my//flycheck
+    "Displays `flycheck' errors and warnings"
+    (my//flycheck-status))
+
+  (spaceline-define-segment my//vc-branch
+    "Displays the current vc/git branch"
+    (when vc-mode
+      (concat
+       ;; use `substring' to strip the "Git: " prefix from the branch name
+       (s-truncate 45 (substring vc-mode 5))
+       " "
+       (propertize (my//propertize-icon (all-the-icons-octicon "git-branch" :v-adjust -0.1)
+					(all-the-icons-octicon-family))
+		   ;; show complete branch name on mouse hover over the icon
+		   'help-echo vc-mode))))
+
+  (spaceline-define-segment my//lsp-status-icon
+    "Icon showing the current connection status of `lsp-mode'"
+    (when (bound-and-true-p lsp-mode)
+      (if (lsp-workspaces)
+	(my//propertize-icon (all-the-icons-faicon "rocket" :v-adjust -0.05)
+			     (all-the-icons-faicon-family)
+			     :foreground "#44bc44")
+	(my//propertize-icon (all-the-icons-faicon "rocket" :v-adjust -0.05)
+			     (all-the-icons-faicon-family)
+			     :foreground "red"))))
+
+  (spaceline-define-segment my//lsp-info
+    "Displays the `lsp-mode-line' info string"
+    (when (bound-and-true-p lsp-mode)
+      (lsp-mode-line)))
+
+  (spaceline-define-segment my//dap-info
+    "Icon indicating a present `dap-mode' session"
+    (when (and (bound-and-true-p lsp-mode)
+	       (bound-and-true-p dap-mode))
+      (when-let ((session (dap--cur-session)))
+	(when (dap--session-running session)
+	  (my//propertize-icon (all-the-icons-faicon "bug" :v-adjust -0.1)
+			       (all-the-icons-faicon-family)
+			       :foreground "purple")))))
+
+  (spaceline-compile
+    ;; left side
+    '(((window-number buffer-modified buffer-size)
+       :face highlight-face
+       :priority 95)
+      ((buffer-id remote-host) :priority 100)
+      (buffer-position :when active
+		       :priority 85)
+      (my//flycheck :when active
+		    :priority 70)
+      ((my//lsp-status-icon my//dap-info)
+       :when active
+       :skip-alternate t
+       :priority 60)
+      (my//lsp-info :when active
+		    :priority 30))
+    ;; right side
+    '((my//vc-branch :when active
+		     :priority 80)
+      (major-mode :priority 90))))
 
 ;;;* keybindings
 
