@@ -3032,6 +3032,16 @@ _k_: previous visible   _H_: hide all      _z_: center
 ;; move the mouse cursor out of the way
 (use-package avoid
   :ensure nil
+  :custom
+  (mouse-avoidance-banish-position
+   ;; default values (top right corner)
+   '((frame-or-window . frame)
+     (side . right)
+     (side-pos . 3)
+     ;; lower top cursor position to avoid clashing with the
+     ;; headerline or the title bar buttons (minimize, maximize, etc.)
+     (top-or-bottom . top)
+     (top-or-bottom-pos . 3)))
   :config (mouse-avoidance-mode 'banish))
 
 ;;;** external packages
