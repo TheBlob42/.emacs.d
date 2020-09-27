@@ -106,24 +106,29 @@
 ;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
-;;;** kill-ring adaptions
+;;;** kill-ring and registers
 
-;; emacs by default does not differentiate between "deleting" and "cutting" text
-;; this means that every delete operation will also save the deleted text to it's clipboard (called `kill-ring')
-;; which will f#$% with people who are used to a more differentiated flow of delete, copy and cut operations
-;; therefore the following adaptions will try make emacs behave more like a traditional text editor
+;; emacs and vim do not really differentiate between "deleting" and "cutting" text
+;; pasting text therefore by default includes formerly deleted text fragments as well as copied ones
+;; this can absolutely f### with people who are used to a more differentiated flow of delete, copy and cut operations
+;; the following adaptions make emacs (with `evil') behave more like a "modern" text editor in that regard
 
-(with-eval-after-load 'evil
-  ;; prevent `evil-delete' from using the kill ring and instead use the "black hole register"
-  ;; see the following link for more information:
-  ;; - https://github.com/syl20bnr/spacemacs/issues/6977#issuecomment-244014379
+;; emacs saves all deleted or copied text into it's internal clipboard (called `kill-ring') and will use this to paste text
+;; vim uses so called registers, by default all copied or deleted text is put into the " register which is also the default source for pasting
+;; every operation can be called with a specific register (using the " prefix) e.g. '"3yw' copies a word into register '3', '"ap' pastes the text from register 'a'
 
-  (defun my//evil-delete-advice (orig-fn beg end &optional type _ &rest args)
-    "Call `evil-delete' with the optional 'black hole register' (?_) argument.
-ORIG-FN is `evil-delete'. BEG, END, TYPE and ARGS are just passed through."
-    (apply orig-fn beg end type ?_ args))
+(with-eval-after-load "evil"
+  ;; by default `evil-yank' automatically writes into the "0" register (if no other one is passed)
+  ;; therefore `evil-paste-after' and `evil-paste-before' are advised to use this one as their default source for pasting
 
-  (advice-add 'evil-delete :around 'my//evil-delete-advice)
+  (defun my//evil-paste-advice (orig-fn count &optional register yank-handler)
+    "Advice function for `evil-paste-after' and `evil-paste-before' which by default uses REGISTER 0.
+Otherwise this calls ORIG-FN and passes COUNT, REGISTER and YANK-HANDLER to it."
+    (when (not register)
+      (setq register ?0))
+    (apply orig-fn count register yank-handler))
+  (advice-add 'evil-paste-after :around 'my//evil-paste-advice)
+  (advice-add 'evil-paste-before :around 'my//evil-paste-advice)
 
   ;; use "x" in visual state for cutting (copy followed by delete)
   ;; instead of being just another keybinding for delete
@@ -138,13 +143,21 @@ ORIG-FN is `evil-delete'. BEG, END, TYPE and ARGS are just passed through."
   (defvar evil-visual-state-map)
   (define-key evil-visual-state-map "x" 'my/evil-cut))
 
-;; replace `kill-region' with `delete-region' (latter does not write to the kill ring)
-;; the main reason is to prevent "M-<backspace>" from using the kill ring
-(advice-add 'kill-region :override 'delete-region)
+(with-eval-after-load "evil-org"
+  ;; special case for `evil-org' as some functions yank the text to a specific register before deleting it
+  ;; prevent these calls to `evil-yank' so they do not clutter our "0" registers with deleted text
 
-;; special case for `org-delete-char' which still writes to the `kill-ring' somehow
-;; we adopt to this case by removing the last entry of the `kill-ring' afterwards
-(advice-add 'org-delete-char :after '(lambda (&rest _) (setq kill-ring (cdr kill-ring))))
+  (defun my//evil-org-delete-char-advice (_orig-fn count &rest _rest)
+    "Ignore all the custom logic of `evil-org-delete-char'.
+Instead call `org-delete-char' with COUNT and ignore the REST."
+    (org-delete-char count))
+  (advice-add 'evil-org-delete-char :around 'my//evil-org-delete-char-advice)
+
+  (defun my//evil-org-delete-backward-char-advice (_orig-fn count &rest _rest)
+    "Ignore all the custom logic of `evil-org-delete-backward-char'.
+Instead call `org-delete-backward-char' with COUNT and ignore the REST."
+    (org-delete-backward-char count))
+  (advice-add 'evil-org-delete-backward-char :around 'my//evil-org-delete-backward-char-advice))
 
 ;;;** backups
 
