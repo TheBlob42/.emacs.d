@@ -292,6 +292,9 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
       (set-face-background 'powerline-active1 "gray80")
       (set-face-background 'powerline-inactive1 "gray87")
       (powerline-reset))
+    ;; reset the state cursors for `evil'
+    (with-eval-after-load "evil"
+      (my//reset-evil-state-cursors))
     ;; change `term-color-white' to gray to make it more readable on the light background
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
@@ -310,6 +313,9 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
       (set-face-background 'powerline-active1 "gray30")
       (set-face-background 'powerline-inactive1 "gray20")
       (powerline-reset))
+    ;; reset the state cursors for `evil'
+    (with-eval-after-load "evil"
+      (my//reset-evil-state-cursors))
     ;; we have to manually reset the `hl-line-mode' color to its origin
     (with-eval-after-load "hl-line"
       (set-face-attribute 'hl-line nil :background "#151823"))
@@ -825,22 +831,28 @@ _V_: shrink   _H_: shrink
 
 ;;;* evil
 
-;; save the startup cursor color of the current theme for later usage
-(defvar my--startup-cursor-color (face-attribute 'cursor :background))
-
 (use-package evil
+  :init
+  ;; we have to define this function before the package being loaded
+  ;; so it works with '(with-eval-after-load "evil" ...)' blocks
+  (defun my//reset-evil-state-cursors ()
+    "Reset shape and color of all evil state cursors."
+    (let ((cursor-color (face-background 'cursor)))
+      (setq
+       ;; style `evil-emacs-state-cursor' to differentiate easily from the other states
+       evil-emacs-state-cursor '("purple" (bar . 3))
+       ;; set all other state cursors to their default shape and color defined by the current theme
+       evil-normal-state-cursor   `(,cursor-color box)
+       evil-visual-state-cursor   `(,cursor-color box)
+       evil-insert-state-cursor   `(,cursor-color (bar . 2))
+       evil-operator-state-cursor `(,cursor-color evil-half-cursor)
+       evil-motion-state-cursor   `(,cursor-color box)
+       evil-replace-state-cursor  `(,cursor-color hbar))))
+
   :custom
   (evil-want-C-u-scroll t)
   (evil-want-Y-yank-to-eol t)
   (evil-kill-on-visual-paste nil)
-  ;; style 'evil-emacs-state-cursor' to differentiate itself from the other states
-  (evil-emacs-state-cursor '("purple" (bar . 3)))
-  (evil-normal-state-cursor   `(,my--startup-cursor-color box))
-  (evil-visual-state-cursor   `(,my--startup-cursor-color box))
-  (evil-insert-state-cursor   `(,my--startup-cursor-color (bar . 2)))
-  (evil-operator-state-cursor `(,my--startup-cursor-color evil-half-cursor))
-  (evil-motion-state-cursor   `(,my--startup-cursor-color box))
-  (evil-replace-state-cursor  `(,my--startup-cursor-color hbar))
   ;; these options are needed by 'evil-collection'
   (evil-want-integration t)
   (evil-want-keybinding nil)
