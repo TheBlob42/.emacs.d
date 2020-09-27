@@ -849,32 +849,6 @@ _V_: shrink   _H_: shrink
   (evil-vsplit-window-right nil)
   :config
   ;; |--------------------------------------------------|
-  ;; |--- unbind mouse events
-  
-  (general-unbind
-    ;; left click
-    "<mouse-1>"
-    "<down-mouse-1>"
-    "<drag-mouse-1>"
-    "<S-down-mouse-1>"
-    "<M-down-mouse-1>"
-    "<M-mouse-1>"
-    "<C-mouse-1>"
-    "<C-down-mouse-1>"
-    "<M-down-mouse-1>"
-    "<C-M-mouse-1>"
-    "<C-M-down-mouse-1>"
-    ;; right click
-    "<mouse-3>"
-    "<down-mouse-3>"
-    "<C-down-mouse-3>"
-    "<S-mouse-3>"
-    "<S-down-mouse-3>"
-    "<M-mouse-3>")
-
-  (general-unbind 'motion "<down-mouse-1>")
-  
-  ;; |--------------------------------------------------|
   ;; |--- emacs "style" keybindings in insert state
 
   (my/insert-state-keys
@@ -3117,6 +3091,29 @@ _N_: previous
 ;; the garbage collection magic hack to only gc when you are idle
 (use-package gcmh
   :init (gcmh-mode 1))
+
+;; disable the default mouse behavior
+(use-package disable-mouse
+  :after evil
+  :config
+  ;; declare the evil state maps to prevent compiler warnings
+  (defvar evil-normal-state-map)
+  (defvar evil-visual-state-map)
+  (defvar evil-operator-state-map)
+  (defvar evil-insert-state-map)
+  (defvar evil-motion-state-map)
+  (defvar evil-replace-state-map)
+  (defvar evil-emacs-state-map)
+
+  ;; manually disable the mouse bindings in all the evil state maps
+  (mapc 'disable-mouse-in-keymap
+	(list evil-normal-state-map
+	      evil-visual-state-map
+	      evil-operator-state-map
+	      evil-insert-state-map
+	      evil-motion-state-map
+	      evil-replace-state-map
+	      evil-emacs-state-map)))
 
 ;;;** utility functions
 
