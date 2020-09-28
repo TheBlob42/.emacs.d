@@ -106,59 +106,6 @@
 ;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
-;;;** kill-ring and registers
-
-;; emacs and vim do not really differentiate between "deleting" and "cutting" text
-;; pasting text therefore by default includes formerly deleted text fragments as well as copied ones
-;; this can absolutely f### with people who are used to a more differentiated flow of delete, copy and cut operations
-;; the following adaptions make emacs (with `evil') behave more like a "modern" text editor in that regard
-
-;; emacs saves all deleted or copied text into it's internal clipboard (called `kill-ring') and will use this to paste text
-;; vim uses so called registers, by default all copied or deleted text is put into the " register which is also the default source for pasting
-;; every operation can be called with a specific register (using the " prefix) e.g. '"3yw' copies a word into register '3', '"ap' pastes the text from register 'a'
-
-(with-eval-after-load "evil"
-  ;; by default `evil-yank' automatically writes into the "0" register (if no other one is passed)
-  ;; therefore `evil-paste-after' and `evil-paste-before' are advised to use this one as their default source for pasting
-
-  (defun my//evil-paste-advice (orig-fn count &optional register yank-handler)
-    "Advice function for `evil-paste-after' and `evil-paste-before' which by default uses REGISTER 0.
-Otherwise this calls ORIG-FN and passes COUNT, REGISTER and YANK-HANDLER to it."
-    (when (not register)
-      (setq register ?0))
-    (apply orig-fn count register yank-handler))
-  (advice-add 'evil-paste-after :around 'my//evil-paste-advice)
-  (advice-add 'evil-paste-before :around 'my//evil-paste-advice)
-
-  ;; use "x" in visual state for cutting (copy followed by delete)
-  ;; instead of being just another keybinding for delete
-
-  (defun my/evil-cut ()
-    "Copy the selected region, then delete it."
-    (interactive)
-    (evil-yank (region-beginning) (region-end))
-    (evil-delete-char (region-beginning) (region-end))
-    (evil-force-normal-state))
-
-  (defvar evil-visual-state-map)
-  (define-key evil-visual-state-map "x" 'my/evil-cut))
-
-(with-eval-after-load "evil-org"
-  ;; special case for `evil-org' as some functions yank the text to a specific register before deleting it
-  ;; prevent these calls to `evil-yank' so they do not clutter our "0" registers with deleted text
-
-  (defun my//evil-org-delete-char-advice (_orig-fn count &rest _rest)
-    "Ignore all the custom logic of `evil-org-delete-char'.
-Instead call `org-delete-char' with COUNT and ignore the REST."
-    (org-delete-char count))
-  (advice-add 'evil-org-delete-char :around 'my//evil-org-delete-char-advice)
-
-  (defun my//evil-org-delete-backward-char-advice (_orig-fn count &rest _rest)
-    "Ignore all the custom logic of `evil-org-delete-backward-char'.
-Instead call `org-delete-backward-char' with COUNT and ignore the REST."
-    (org-delete-backward-char count))
-  (advice-add 'evil-org-delete-backward-char :around 'my//evil-org-delete-backward-char-advice))
-
 ;;;** backups
 
 ;; improve the default configuration for file backups
@@ -249,6 +196,105 @@ Instead call `org-delete-backward-char' with COUNT and ignore the REST."
 (use-package s)               ; string manipulation
 (use-package dash)            ; modern list api
 (use-package dash-functional) ; function combinators
+
+;;;** kill-ring and registers
+
+;; emacs and vim do not really differentiate between "copying", "deleting" and "cutting" text
+;; if one copies some text A, then deletes text B and then calls a paste operation, the inserted text will be B (by default)
+;; this can absolutely f### with peoples heads who are used to a more separated flow of copying, deleting and cutting
+;; therefore this section tries to make emacs (with `evil') behave more like a modern text editor
+
+;; vim uses multiple storage spaces for text the so called registers
+;; every operation can be called with a specific register (using the " prefix key)
+;; e.g. '"3yw' copies the next word into register '3', '"ap' pastes the text from register 'a'
+
+;; there are some special registers:
+;; | register | content                                                |
+;; |----------|--------------------------------------------------------|
+;; | 0        | last copied text                                       |
+;; | "        | last copied OR deleted text (default source for paste) |
+;; | *        | primary selection                                      |
+;; | +        | desktop clipboard                                      |
+;; | ...      | ...                                                    |
+
+(defvar my//evil-yank-default-register ?0
+  "By default `evil-yank' automatically writes into the 0 register.
+By changing this variable one changes the default target for all evil 'yank' commands.
+Furthermore set the default source for pasting to this register, so that deleted texts will be ignored by it.")
+
+;; if emacs was started as GUI application or "xclip" is installed
+;; the default yank/paste register is changed '+' (the systems clipboard)
+(when (or (display-graphic-p)
+	  (executable-find "xclip"))
+  (setq select-enable-clipboard nil) ; delete/cut operations will not write to the clipboard
+  (setq my//evil-yank-default-register ?+))
+
+(when (and (not (display-graphic-p))
+	   (executable-find "xclip"))
+  ;; make sure that xclip is used for all copy operations
+  (use-package xclip
+    :config
+    (xclip-mode 1)))
+
+(with-eval-after-load "evil"
+
+  ;; we advise all relevant "yank" and "paste" functions to use `my//evil-yank-default-register'
+
+  (defun my//evil-yank-advice (orig-fn beg end &optional type register yank-handler)
+    "Advice function for `evil-yank' which will set the default REGISTER to `my//evil-yank-default-register'.
+Otherwise this calls ORIG-FN and pass BEG, END, TYPE and YANK-HANDLER to it."
+    (defvar evil-was-yanked-without-register) ; to surpress compiler warnings
+    (when (and evil-was-yanked-without-register (not register))
+      (setq register my//evil-yank-default-register))
+    (apply orig-fn beg end type register (list yank-handler)))
+  (advice-add 'evil-yank :around 'my//evil-yank-advice)
+
+  (defun my//evil-yank-line-advice (orig-fn beg end &optional type register)
+    "Advice function for `evil-yank-line' which will set the default REGISTER to `my//evil-yank-default-register'.
+Otherwise this calls ORIG-FN and pass BEG, END, TYPE and YANK-HANDLER to it."
+    (defvar evil-was-yanked-without-register) ; to surpress compiler warnings
+    (when (and evil-was-yanked-without-register (not register))
+      (setq register my//evil-yank-default-register))
+    (apply orig-fn beg end type (list register)))
+  (advice-add 'evil-yank-line :around 'my//evil-yank-line-advice)
+
+  (defun my//evil-paste-advice (orig-fn count &optional register yank-handler)
+    "Advice function for `evil-paste-after' and `evil-paste-before' to use the default REGISTER `my//evil-yank-default-register'.
+Otherwise this calls ORIG-FN and passes COUNT, REGISTER and YANK-HANDLER to it."
+    (when (not register)
+      (setq register my//evil-yank-default-register))
+    (apply orig-fn count register yank-handler))
+  (advice-add 'evil-paste-after :around 'my//evil-paste-advice)
+  (advice-add 'evil-paste-before :around 'my//evil-paste-advice)
+
+  ;; use "x" in visual state for cutting (copy followed by delete)
+  ;; instead of being just another keybinding for delete
+
+  (defun my/evil-cut ()
+    "Copy the selected region, then delete it."
+    (interactive)
+    (evil-yank (region-beginning) (region-end))
+    (evil-delete-char (region-beginning) (region-end))
+    (evil-force-normal-state))
+
+  (defvar evil-visual-state-map)
+  (define-key evil-visual-state-map "x" 'my/evil-cut))
+
+(with-eval-after-load "evil-org"
+  ;; special case for `evil-org' as some functions yank the text to a before deleting it
+  ;; prevent these calls to `evil-yank' so they do not clutter `my//evil-yank-default-register' with deleted text
+
+  (defun my//evil-org-delete-char-advice (_orig-fn count &rest _rest)
+    "Ignore all the custom logic of `evil-org-delete-char'.
+Instead call `org-delete-char' with COUNT and ignore the REST."
+    (org-delete-char count))
+  (advice-add 'evil-org-delete-char :around 'my//evil-org-delete-char-advice)
+
+  (defun my//evil-org-delete-backward-char-advice (_orig-fn count &rest _rest)
+    "Ignore all the custom logic of `evil-org-delete-backward-char'.
+Instead call `org-delete-backward-char' with COUNT and ignore the REST."
+    (org-delete-backward-char count))
+  (advice-add 'evil-org-delete-backward-char :around 'my//evil-org-delete-backward-char-advice))
 
 ;;;** user config
 
