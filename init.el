@@ -265,7 +265,7 @@ Otherwise this calls ORIG-FN and pass BEG, END, TYPE and YANK-HANDLER to it."
 Otherwise this calls ORIG-FN and passes COUNT, REGISTER and YANK-HANDLER to it."
     (when (not register)
       (setq register my//evil-yank-default-register))
-    (apply orig-fn count register yank-handler))
+    (apply orig-fn count register (list yank-handler)))
   (advice-add 'evil-paste-after :around 'my//evil-paste-advice)
   (advice-add 'evil-paste-before :around 'my//evil-paste-advice)
 
