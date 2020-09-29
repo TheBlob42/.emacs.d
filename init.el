@@ -230,12 +230,13 @@ Furthermore set the default source for pasting to this register, so that deleted
   (setq select-enable-clipboard nil) ; delete/cut operations will not write to the clipboard
   (setq my//evil-yank-default-register ?+))
 
-(when (and (not (display-graphic-p))
-	   (executable-find "xclip"))
-  ;; make sure that xclip is used for all copy operations
-  (use-package xclip
-    :config
-    (xclip-mode 1)))
+(when (not (display-graphic-p))
+  (if (executable-find "xclip")
+      ;; make sure that xclip is used for all copy operations in terminal emacs
+      (use-package xclip
+	:config
+	(xclip-mode 1))
+    (message "For access to the system clipboard (from the terminal) please install 'xclip'")))
 
 (with-eval-after-load "evil"
 
