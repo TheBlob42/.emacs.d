@@ -1243,10 +1243,12 @@ _N_: previous error _c_: correct word
 ;; highlighting matching parentheses
 (use-package paren
   :ensure nil
+  :custom
+  (show-paren-style 'expression)
   :custom-face
-  (show-paren-match-expression ((t (:weight ultra-bold))))
+  (show-paren-match-expression ((t (:weight ultra-bold
+				    :inherit warning))))
   :config
-  (setq show-paren-style 'expression)
   (show-paren-mode))
 
 ;; insert closing delimiter automatically
