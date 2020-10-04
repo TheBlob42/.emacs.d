@@ -621,11 +621,8 @@ inherits the other properties from the parent face:
   ;; |--------------------------------------------------|
   ;; |--- General emacs keybindings
 
-  (my/normal-state-keys
-    "C-M-<backspace>" 'delete-indentation)
   (my/insert-state-keys
-    "C-d" 'delete-char
-    "C-M-<backspace>" 'delete-indentation)
+    "C-d" 'delete-char)
   
   ;; |--------------------------------------------------|
   ;; |--- Frames
@@ -687,7 +684,6 @@ Repeated calls toggle back and forth between the two most recent buffers."
   (my/leader-key
     :infix my/infix/buffer
     "" '(:ignore t :which-key "Buffers")
-    "a" '(mark-whole-buffer :which-key "select all content")
     "n" '(my/new-empty-buffer :which-key "new")
     "u" '(undo-tree-visualize :which-key "undo-tree")
     "d" '(kill-current-buffer :which-key "kill")
@@ -879,6 +875,7 @@ _V_: shrink   _H_: shrink
 
 ;;;* evil
 
+;; an extensible vi layer which emulates the main features of vim and turns emacs into a modal editor
 (use-package evil
   :init
   ;; we have to define this function before the package being loaded
@@ -896,78 +893,40 @@ _V_: shrink   _H_: shrink
        evil-operator-state-cursor `(,cursor-color evil-half-cursor)
        evil-motion-state-cursor   `(,cursor-color box)
        evil-replace-state-cursor  `(,cursor-color hbar))))
-
   :custom
-  (evil-want-C-u-scroll t)
-  (evil-want-Y-yank-to-eol t)
-  (evil-kill-on-visual-paste nil)
-  ;; these options are needed by 'evil-collection'
-  (evil-want-integration t)
-  (evil-want-keybinding nil)
-  ;; window split options
-  (evil-split-window-below nil)
-  (evil-vsplit-window-right nil)
+  (evil-want-minibuffer t)        ; integrate `evil' into the minibuffer
+  (evil-want-C-u-scroll t)        ; scroll up with 'C-u' like in vim
+  (evil-want-Y-yank-to-eol t)     ; 'Y' should yank to the end of the line (instead of the whole line)
+  (evil-kill-on-visual-paste nil) ; pasting in visual state should NOT add the replaced text to the kill ring
+  (evil-split-window-below nil)   ; split windows are created above
+  (evil-vsplit-window-right nil)  ; vertically split windows are created on the left
+  ;; these two options are set as required by `evil-collection'
+  (evil-want-integration t)       ; load 'evil-integration.el' (default)
+  (evil-want-keybinding nil)      ; do NOT load 'evil-keybindings.el' as `evil-collection' is used instead
   :config
-  ;; |--------------------------------------------------|
-  ;; |--- emacs "style" keybindings in insert state
+  ;; setup the most generic minibuffer keybindings for `evil'
+  (general-define-key
+   :states '(normal insert visual emacs)
+   :keymaps 'minibuffer-local-map
+   "C-g" 'minibuffer-keyboard-quit
+   "RET" 'exit-minibuffer)
 
+  ;; `evil-set-initial-state' can not be used since the minibuffer has no mode
+  (add-hook 'minibuffer-setup-hook 'evil-insert-state)
+
+  ;; just some general useful insert state keybindings
   (my/insert-state-keys
+    ;; "restore" some emacs bindings
     "C-a" 'evil-beginning-of-line
     "C-e" 'evil-end-of-visual-line
-    "C-S-n" 'evil-next-line
-    "C-S-p" 'evil-previous-line)
-
-  ;; |--------------------------------------------------|
-  ;; |--- utility insert state bindings
-
-  (my/insert-state-keys
+    ;; utility insert state bindings
     "M-o" 'evil-open-below
-    "M-O" 'evil-open-above
-    ;; alternative to 'evil-escape'
-    ;; especially useful for the usage with `evil-mc'
-    "C-g" 'evil-normal-state)
+    "M-O" 'evil-open-above)
 
-  ;; |--------------------------------------------------|
-  ;; |--- Toggles
-  
-  ;; toggle the visual line mode
-  (defvar my--visual-line-toggle nil)
-
-  (defun my//visual-line-which-key-replacement (entry)
-    "Which key replacement function for the 'visual line mode'."
-    (let ((key (car entry)))
-      (if my--visual-line-toggle
-	`(,key . "[X] visual lines")
-	`(,key . "[ ] visual lines"))))
-
-  (defun my/toggle-visual-line ()
-    "Toggle 'visual-line-mode' and set custom keybindings for it."
-    (interactive)
-    (if my--visual-line-toggle
-      ;; deactivate "visual-line-mode"
-      (progn
-	(visual-line-mode -1)
-	(evil-normalize-keymaps))
-      ;; activate "visual-line-mode"
-      (progn
-	(visual-line-mode)
-	(general-define-key
-	 :definer 'minor-mode
-	 :states '(normal motion)
-	 :keymaps 'visual-line-mode
-	 "j" 'evil-next-visual-line
-	 "k" 'evil-previous-visual-line
-	 "<down>" 'evil-next-visual-line
-	 "<up>" 'evil-previous-visual-line)
-	(evil-normalize-keymaps)))
-    (setq-local my--visual-line-toggle (not my--visual-line-toggle)))
-
-  (my/leader-key
-    :infix my/infix/toggle
-    "l" '(my/toggle-visual-line :which-key my//visual-line-which-key-replacement))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Insert
+  ;;
+  ;; utility functions to insert newlines below or above the current point
+  ;; these ones are shamelessly "borrowed" from spacemacs
+  ;;
   
   (defun spacemacs/evil-insert-line-above (count)
     "Insert one or several lines (COUNT) above the current point's line.
@@ -986,89 +945,109 @@ It does so without changing the current state and point position."
     "j" '(spacemacs/evil-insert-line-below :which-key "line below")
     "k" '(spacemacs/evil-insert-line-above :which-key "line above"))
   
-  ;; |--------------------------------------------------|
-  ;; |--- Windows
+  ;;
+  ;; utility functions for window splitting (and focus) and window related keybindings
+  ;;
 
   (defun my/evil-vsplit-right-and-focus ()
-    "V-Split the current window and focus the new window on the right."
+    "Split the current window vertically and focus the new window on the right."
     (interactive)
     (let ((evil-vsplit-window-right t))
       (evil-window-vsplit)))
 
   (defun my/evil-split-below-and-focus ()
-    "Split the current window and focus the new window below."
+    "Split the current window horizontally and focus the new window below."
     (interactive)
     (let ((evil-split-window-below t))
       (evil-window-split)))
   
   (my/leader-key
     :infix my/infix/windows
-    "V" '(my/evil-vsplit-right-and-focus :which-key "vsplit and focus")
-    "S" '(my/evil-split-below-and-focus :which-key "split and focus")
-    "v" '(evil-window-vsplit :which-key "vsplit")
-    "s" '(evil-window-split :which-key "split")
+    "V" '(my/evil-vsplit-right-and-focus :which-key "split → and focus")
+    "S" '(my/evil-split-below-and-focus :which-key "split ↓ and focus")
+    "v" '(evil-window-vsplit :which-key "split →")
+    "s" '(evil-window-split :which-key "split ↓")
     "h" '(evil-window-left :which-key "go left")
     "l" '(evil-window-right :which-key "go right")
     "j" '(evil-window-down :which-key "go down")
     "k" '(evil-window-up :which-key "go up")
-    "d" '(:ignore t :which-key "Delete")
+    "d" '(:ignore t :which-key "Delete Window")
     "dd" '(evil-window-delete :which-key "current"))
-  ;; |--------------------------------------------------|
 
   (evil-mode))
 
+;; evil bindings for the parts of emacs that are not covered properly by default
 (use-package evil-collection
   :after evil
   :custom
-  ;; deactivate 'company-tng'
-  (evil-collection-company-use-tng nil)
+  (evil-collection-company-use-tng nil) ; deactivate `company-tng'
   :config
+  ;; enable bindings only for desired modes in order to keep control
   (evil-collection-init '(company
 			  comint
 			  compile
 			  dired
 			  (package-menu package)
 			  (term term ansi-term multi-term)))
+
+  ;; enable `evil-scroll-down' also in visual state
   (my/visual-state-keys
     :keymaps 'comint-mode-map
-    ;; enable 'evil-scroll-down' also in visual state
     "C-d" 'evil-scroll-down)
+
   (my/insert-state-keys
     :keymaps 'comint-mode-map
     ;; enable default binding for previous-input
     "C-p" 'comint-previous-input)
-  (general-unbind compilation-mode-map
-    ;; unbind 'describe-mode' to prevent conflict with evil navigation
-    ;; ('describe-mode' is also available via "C-h m" or "g?")
-    "h")
-  (my/normal-state-keys
-    :keymaps 'compilation-mode-map
-    ;; reset 'recompile' to prevent conflicts with evil-mc (gr)
-    "gR" 'recompile)
-  (my/normal-state-keys
-    :keymaps 'dired-mode-map
-    "gR" 'revert-buffer)
+
+  ;; unbind `describe-mode' to prevent conflict with evil navigation
+  (general-unbind compilation-mode-map "h")
+
+  ;; add help shortcut for packages
   (my/normal-state-keys
     :keymaps 'package-menu-mode-map
     "?" 'package-menu-describe-package))
 
+;; custom key sequence to "escape" from insert state (and everything else)
 (use-package evil-escape
   :after evil
   :custom
   (evil-escape-key-sequence "fd")
   (evil-escape-delay 0.2)
-  :config (evil-escape-mode))
+  :config
+  (evil-escape-mode))
 
+;; provides 2-character motions for quickly jumping around text
 (use-package evil-snipe
   :after evil
+  ;; :custom
+  ;; BUG in the case of `evil-snipe-skip-leading-whitespace' being non-nil
+  ;; `evil-snipe-t'/`evil-snipe-T' will snipe onto whitespace characters instead of before them
+  ;; (when sniping for whitespaces , e.g. t<space> or T<space>)
+  ;; (evil-snipe-skip-leading-whitespace nil)
+  :custom-face
+  (evil-snipe-matches-face ((t (:background "#00bdfa" :inherit default))))
   :config
   (evil-snipe-mode 1)           ; enable evil snipe mode
   (evil-snipe-override-mode 1)) ; enable alternate behaviour for "f/t/F/T" keys
 
+;; delete, change and add surrounding in pairs
 (use-package evil-surround
   :after (evil evil-snipe)
+  :general
+  ;; bind manually instead of using `global-evil-surround-mode'
+  ;; to prevent conflicts with `evil-snipe' keybindings
+  (my/visual-state-keys
+    "gs" 'evil-surround-region
+    "gS" 'evil-Surround-region)
+
+  (general-define-key
+   :states '(operator)
+   "s" 'evil-surround-edit
+   "S" 'evil-Surround-edit)
+
   :config
-  ;; swap evil-surround default behavior:
+  ;; swap `evil-surround' default behavior:
   ;; - use non-spaced pairs when surrounding with an opening brace
   ;; - use spaced pairs when surrounding with a closing brace
   (evil--add-to-alist
@@ -1078,22 +1057,42 @@ It does so without changing the current state and point position."
    ?\{ '("{" . "}")
    ?\) '("( " . " )")
    ?\] '("[ " . " ]")
-   ?\} '("{ " . " }"))
-  :general
-  ;; bind manually instead of using 'global-evil-surround-mode' to prevent conflicts with evil-snipe
-  (my/visual-state-keys
-    "gS" 'evil-Surround-region
-    "gs" 'evil-surround-region))
+   ?\} '("{ " . " }")))
 
+;; comment stuff out
 (use-package evil-commentary
   :after evil
   :general
-  ;; use this instead of 'evil-commentary-mode' to defer loading
-  (my/normal-state-keys "gc" 'evil-commentary))
+  (general-define-key
+   :states '(normal)
+   "gc" 'evil-commentary
+   "gy" 'evil-commentary-yank))
 
-(use-package evil-mc
+;; multiple cursors for `evil', based on iedit
+(use-package evil-multiedit
   :after evil
-  :config (global-evil-mc-mode 1))
+  :general
+  (general-define-key
+   :states '(normal visual)
+   "M-d" 'evil-multiedit-match-and-next
+   "M-D" 'evil-multiedit-match-and-prev)
+
+  (general-define-key
+   :states '(visual)
+   "R" 'evil-multiedit-match-all)
+
+  :config
+  (general-define-key
+   :keymaps 'evil-multiedit-state-map
+   "M-d" 'evil-multiedit-match-and-next
+   "M-D" 'evil-multiedit-match-and-prev
+   "RET" 'evil-multiedit-toggle-or-restrict-region)
+
+  (general-define-key
+   :keymaps '(evil-multiedit-state-map
+	      evil-multiedit-insert-state-map)
+   "C-n" 'evil-multiedit-next
+   "C-p" 'evil-multiedit-prev))
 
 ;;;* spellchecker
 
@@ -1358,6 +1357,7 @@ _N_: previous error _c_: correct word
 
 ;;;* ivy, counsel & swiper
 
+;; a generic completion frontend for emacs
 (use-package ivy
   :custom
   (ivy-count-format "(%d/%d) ")          ; format for the number of candidates
@@ -1365,32 +1365,45 @@ _N_: previous error _c_: correct word
   (ivy-magic-slash-non-match-action nil) ; allow "/" to create new non-existent directories
   (ivy-use-selectable-prompt t)          ; makes the prompt line (line 0) selectable
   (ivy-fixed-height-minibuffer t)        ; fixate the height of the minibuffer even if there are fewer candidates
+  (ivy-read-action-format-function
+   'ivy-read-action-format-columns)      ; use several columns for the actions docstring if needed
   :config
   (defun my/ivy-switch-to-non-system-buffer ()
-    "Call 'ivy-switch-buffer' but ignore certain types of 'system' buffers."
+    "Call `ivy-switch-buffer' but ignore certain types of 'system' buffers."
     (interactive)
     (let ((ivy-ignore-buffers (append ivy-ignore-buffers
-				      '("^ *\\*")    ; ignore all "star buffers"
-				      '("^:")        ; ignore dired sidebar buffers
-				      '("^magit")))) ; ignore magit buffers
+				      '("^ *\\*")    ; ignore all "system buffers"
+				      '("^:")        ; ignore `dired-sidebar' buffers
+				      '("^magit")))) ; ignore `magit' buffers
       (ivy-switch-buffer)))
+
   (my/leader-key
     "bb" '(ivy-switch-buffer :which-key "switch")
     "bB" '(my/ivy-switch-to-non-system-buffer :which-key "switch (no sys)"))
 
+  ;; close the ivy hydra when the minibuffer is closed to prevent weird states
+  (add-hook 'minibuffer-exit-hook 'hydra-keyboard-quit)
+
+  ;; adapt keybindings for the `evil' states in the minibuffer
   (general-define-key
+   :states '(normal insert emacs)
    :keymaps 'ivy-minibuffer-map
    ;; enable up and down navigation in ivy buffer with 'C-j' and 'C-k'
    "C-k" 'ivy-previous-line
    "C-j" 'ivy-next-line
-   ;; add bindings to (un)mark candidates without using the ivy-hydra
-   "C-SPC" 'ivy-mark
-   "C-S-SPC" 'ivy-unmark)
+   ;; rebind some generic `ivy' keybindings for all states
+   "C-o" 'hydra-ivy/body
+   "M-o" 'ivy-dispatching-done
+   "M-O" nil
+   "RET" 'ivy-done
+   ;; add bindings to (un)mark candidates without using the `ivy-hydra'
+   "M-m" 'ivy-mark
+   "M-u" 'ivy-unmark)
 
+  ;; shortcut keybinding to kill a buffer from ivy
   (general-define-key
+   :states '(normal insert emacs)
    :keymaps 'ivy-switch-buffer-map
-   ;; remap "C-k" for movement and use "C-d" instead to kill a buffer
-   "C-k" 'ivy-previous-line
    "C-d" 'ivy-switch-buffer-kill)
 
   (ivy-mode 1))
@@ -3090,6 +3103,55 @@ _k_: previous visible   _H_: hide all      _z_: center
      (top-or-bottom . top)
      (top-or-bottom-pos . 3)))
   :config (mouse-avoidance-mode 'banish))
+
+;; a grab-bag of basic emacs commands not specifically related to something else
+(use-package simple
+  :ensure nil
+  :init
+  ;; toggle the visual line mode
+  (defvar my--visual-line-toggle nil)
+
+  (defun my//visual-line-which-key-replacement (entry)
+    "Which key replacement function for the 'visual line mode'."
+    (let ((key (car entry)))
+      (if my--visual-line-toggle
+	`(,key . "[X] visual lines")
+	`(,key . "[ ] visual lines"))))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "l" '(my/toggle-visual-line :which-key my//visual-line-which-key-replacement))
+
+  (my/leader-key
+    :infix my/infix/buffer
+    "a" '(mark-whole-buffer :which-key "select all content"))
+
+  (general-define-key
+   :states '(normal insert)
+    "C-M-<backspace>" 'delete-indentation
+    "C-M-<backspace>" 'delete-indentation)
+  :config
+  (defun my/toggle-visual-line ()
+    "Toggle `visual-line-mode' and set custom keybindings for it."
+    (interactive)
+    (if my--visual-line-toggle
+      ;; deactivate `visual-line-mode'
+      (progn
+	(visual-line-mode -1)
+	(evil-normalize-keymaps))
+      ;; activate `visual-line-mode'
+      (progn
+	(visual-line-mode)
+	(general-define-key
+	 :definer 'minor-mode
+	 :states '(normal motion)
+	 :keymaps 'visual-line-mode
+	 "j" 'evil-next-visual-line
+	 "k" 'evil-previous-visual-line
+	 "<down>" 'evil-next-visual-line
+	 "<up>" 'evil-previous-visual-line)
+	(evil-normalize-keymaps)))
+    (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
 
 ;;;** external packages
 
