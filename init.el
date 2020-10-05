@@ -1020,11 +1020,11 @@ It does so without changing the current state and point position."
 ;; provides 2-character motions for quickly jumping around text
 (use-package evil-snipe
   :after evil
-  ;; :custom
+  :custom
   ;; BUG in the case of `evil-snipe-skip-leading-whitespace' being non-nil
   ;; `evil-snipe-t'/`evil-snipe-T' will snipe onto whitespace characters instead of before them
   ;; (when sniping for whitespaces , e.g. t<space> or T<space>)
-  ;; (evil-snipe-skip-leading-whitespace nil)
+  (evil-snipe-skip-leading-whitespace nil)
   :custom-face
   (evil-snipe-matches-face ((t (:background "#00bdfa" :inherit default))))
   :config
