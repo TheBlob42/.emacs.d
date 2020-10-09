@@ -1038,7 +1038,7 @@ In this case the source of the relative path is the current buffer or file."
   (iflipb-wrap-around t)              ; restart from the beginning when the end of the buffer list is reached
   (iflipb-ignore-buffers nil)         ; do not ignore any buffers
   :general
-  (my/leader-key "TAB" 'hydra-iflipb/body)
+  (my/leader-key "TAB" '(hydra-iflipb/body :which-key "previous buffer"))
   :config
   (defhydra hydra-iflipb (;; call `iflipb-next-buffer' before the hydra opens to directly start a new `iflipb' sequence without any additional key press
 			  :body-pre (iflipb-next-buffer nil)
