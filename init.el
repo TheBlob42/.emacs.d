@@ -19,7 +19,7 @@
 
 ;;;* setup
 
-;;;** startup optimizations
+;;;** startup speed
 
 ;; keep the startup time of Emacs low by applying the following techniques:
 ;; - use "lexical-binding" (see first line of this file)
@@ -57,54 +57,6 @@
      gc-cons-percentage 0.1
      ;; reset `file-name-handler-alist' to avoid complications
      file-name-handler-alist my--file-name-handler-alist)))
-
-;;;** sane defaults
-
-;; set some general configuration options to make the emacs experience more enjoyable
-
-(setq
- inhibit-startup-screen t                    ; disable the start-up screen
- initial-scratch-message ""                  ; empty the initial *scratch* buffer
- initial-major-mode 'fundamental-mode        ; set 'fundamental-mode' for scratch buffer
- sentence-end-double-space nil               ; end sentences with just one space (default: two)
- create-lockfiles nil                        ; lockfiles don't provide a lot of benefit
- scroll-conservatively most-positive-fixnum  ; always scroll by one line
- ring-bell-function 'ignore                  ; turn off the bell sound
- x-stretch-cursor t                          ; make cursor the width of the character underneath (e.g. full width of a TAB)
- delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
- load-prefer-newer t                         ; always load the newest version of an elisp file
- help-window-select t)                       ; focus new help windows when opened
-
-(set-default-coding-systems 'utf-8)         ; default to utf-8 encoding
-(add-to-list 'default-frame-alist
-	     '(fullscreen . maximized))     ; maximize the emacs window on startup
-
-;; answering with 'y' or 'n' is sufficient
-(defalias 'yes-or-no-p 'y-or-n-p)
-
-;; remove not needed GUI elements
-(menu-bar-mode -1)
-(tool-bar-mode -1)
-
-;; never display vertical & horizontal scrollbars
-;; (for the current as well as new frames)
-(set-scroll-bar-mode nil)
-(toggle-horizontal-scroll-bar -1)
-
-;; do not show tooltips in pop-up windows
-(tooltip-mode -1)
-
-;; write the customization block to another file (but never load it)
-;; this prevents the 'init.el' file to getting cluttered with "customization" code
-(setq custom-file (concat user-emacs-directory "ignore-customizations.el"))
-
-;; fix resizing issues of child frames with GTK3 and GNOME
-;; for more information have a look at the following links:
-;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
-;; - https://github.com/tumashu/company-posframe/issues/2
-
-;; NOTE this option migth be removed in the future
-(setq x-gtk-resize-child-frames 'hide)
 
 ;;;** fonts
 
@@ -167,7 +119,7 @@
  use-package-always-ensure t       ; ensure all packages added via `use-package'
  use-package-compute-statistics t) ; enable this to see package loading statistics
 
-;;;** some basic requirements
+;;;** libraries
 
 ;; to ensure everything is working fine you have to install the fonts
 ;; necessary by running the command (M-x) `all-the-icons-install-fonts'
@@ -178,7 +130,74 @@
 (use-package dash)            ; modern list api
 (use-package dash-functional) ; function combinators
 
-;;;** kill-ring and registers
+;;;** defaults
+
+;; set some general configuration options to make the emacs experience more enjoyable
+
+(setq
+ inhibit-startup-screen t                    ; disable the start-up screen
+ initial-scratch-message ""                  ; empty the initial *scratch* buffer
+ initial-major-mode 'fundamental-mode        ; set 'fundamental-mode' for scratch buffer
+ sentence-end-double-space nil               ; end sentences with just one space (default: two)
+ create-lockfiles nil                        ; lockfiles don't provide a lot of benefit
+ scroll-conservatively most-positive-fixnum  ; always scroll by one line
+ ring-bell-function 'ignore                  ; turn off the bell sound
+ x-stretch-cursor t                          ; make cursor the width of the character underneath (e.g. full width of a TAB)
+ delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
+ load-prefer-newer t)                        ; always load the newest version of an elisp file
+
+(set-language-environment "UTF-8")          ; default to utf-8 encoding
+(add-to-list 'default-frame-alist
+	     '(fullscreen . maximized))     ; maximize the emacs window on startup
+
+;; answering with 'y' or 'n' is sufficient
+(defalias 'yes-or-no-p 'y-or-n-p)
+
+(use-package help
+  :ensure nil
+  ;; focus new help windows when opened
+  :custom (help-window-select t))
+
+(use-package cus-edit
+  :ensure nil
+  :custom
+  ;; write the customization block to another file (but never load it)
+  ;; this prevents the 'init.el' file to getting cluttered with "customization" code
+  (custom-file (concat user-emacs-directory "ignore-customizations.el")))
+
+;; fix resizing issues of child frames with GTK3 and GNOME
+;; for more information have a look at the following links:
+;; - https://git.savannah.gnu.org/cgit/emacs.git/commit/?h=emacs-27&id=c49d379f17bcb0ce82604def2eaa04bda00bd5ec
+;; - https://github.com/tumashu/company-posframe/issues/2
+
+;; NOTE this option migth be removed in the future
+(setq x-gtk-resize-child-frames 'hide)
+
+;; remove not needed GUI elements
+
+(use-package menu-bar
+  :ensure nil
+  :config (menu-bar-mode -1))
+
+(use-package tool-bar
+  :ensure nil
+  :config (tool-bar-mode -1))
+
+(use-package scroll-bar
+  :ensure nil
+  :config
+  ;; never display vertical & horizontal scrollbars
+  ;; (for the current as well as new frames)
+  (set-scroll-bar-mode nil)
+  (toggle-horizontal-scroll-bar -1))
+
+(use-package tooltip
+  :ensure nil
+  :config
+  ;; do not show tooltips in pop-up windows (but in the echo area instead)
+  (tooltip-mode -1))
+
+;;;** copy & paste
 
 ;; emacs and vim do not really differentiate between "copying", "deleting" and "cutting" text
 ;; if one copies some text A, then deletes text B and then calls a paste operation, the inserted text will be B (by default)
@@ -203,8 +222,8 @@
 By changing this variable one changes the default target for all evil 'yank' commands.
 Furthermore set the default source for pasting to this register, so that deleted texts will be ignored by it.")
 
-;; if emacs was started as GUI application or "xclip" is installed
-;; the default yank/paste register is changed '+' (the systems clipboard)
+;; if emacs was started as a GUI application or if "xclip" is installed
+;; the default yank/paste register is changed to '+' (the systems clipboard)
 (when (or (display-graphic-p)
 	  (executable-find "xclip"))
   (setq select-enable-clipboard nil) ; delete/cut operations will not write to the clipboard
@@ -884,12 +903,12 @@ It does so without changing the current state and point position."
 ;; file related operations & functions
 (use-package files
   :ensure nil
-  :init
+  :preface
   (defconst my-backup-directory (concat user-emacs-directory "backups"))
   ;; create the backup folder if it does not exist yet
   (when (not (file-exists-p my-backup-directory))
     (make-directory my-backup-directory t))
-
+  :init
   (defun my//insert-file-path-wk-replacement (entry)
     ""
     (let ((key (car entry)))
