@@ -106,26 +106,6 @@
 ;; NOTE this option migth be removed in the future
 (setq x-gtk-resize-child-frames 'hide)
 
-;;;** backups
-
-;; improve the default configuration for file backups
-
-(defvar my-backup-directory (concat user-emacs-directory "backups"))
-;; create the backup folder if it does not exist yet
-(when (not (file-exists-p my-backup-directory))
-  (make-directory my-backup-directory t))
-
-(setq
- ;; save all backup files to a backup folder inside the emacs directory
- backup-directory-alist `(("." . ,my-backup-directory))
- make-backup-files t   ; backup a file the first time it is saved
- backup-by-copying t   ; don't get problems with symlinks
- version-control t     ; version numbers for backup files
- delete-old-versions t ; delete excess backup files silently
- kept-old-versions 6   ; oldest version to keep when a new numbered backup is made (default: 2)
- kept-new-versions 9   ; newest version to keep when a new numbered backup is made (default: 2)
- auto-save-default t)  ; auto-save every buffer that visits a file
-
 ;;;** fonts
 
 ;; set custom fonts for the emacs GUI application
@@ -905,12 +885,27 @@ It does so without changing the current state and point position."
 (use-package files
   :ensure nil
   :init
+  (defconst my-backup-directory (concat user-emacs-directory "backups"))
+  ;; create the backup folder if it does not exist yet
+  (when (not (file-exists-p my-backup-directory))
+    (make-directory my-backup-directory t))
+
   (defun my//insert-file-path-wk-replacement (entry)
     ""
     (let ((key (car entry)))
       (if prefix-arg
 	`(,key . "file path [rel]")
 	`(,key . "file path [abs]"))))
+  :custom
+  ;; save all backup files to a backup folder inside the emacs directory
+  (backup-directory-alist `(("." . ,my-backup-directory)))
+  (make-backup-files t)   ; backup a file the first time it is saved
+  (backup-by-copying t)   ; don't get problems with symlinks
+  (version-control t)     ; version numbers for backup files
+  (delete-old-versions t) ; delete excess backup files silently
+  (kept-old-versions 6)   ; oldest version to keep when a new numbered backup is made (default: 2)
+  (kept-new-versions 9)   ; newest version to keep when a new numbered backup is made (default: 2)
+  (auto-save-default t)   ; auto-save every buffer that visits a file
   :general
   (my/leader-key
     :infix my/infix/files
