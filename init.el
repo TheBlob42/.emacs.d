@@ -408,6 +408,29 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 ;; building commands with prefix keys and arguments
 (use-package transient)
 
+;; disable the default mouse behavior
+(use-package disable-mouse
+  :after evil
+  :config
+  ;; declare the evil state maps to prevent compiler warnings
+  (defvar evil-normal-state-map)
+  (defvar evil-visual-state-map)
+  (defvar evil-operator-state-map)
+  (defvar evil-insert-state-map)
+  (defvar evil-motion-state-map)
+  (defvar evil-replace-state-map)
+  (defvar evil-emacs-state-map)
+
+  ;; manually disable the mouse bindings in all the evil state maps
+  (mapc 'disable-mouse-in-keymap
+	(list evil-normal-state-map
+	      evil-visual-state-map
+	      evil-operator-state-map
+	      evil-insert-state-map
+	      evil-motion-state-map
+	      evil-replace-state-map
+	      evil-emacs-state-map)))
+
 ;;;* styling
 
 ;;;** theme
@@ -957,6 +980,19 @@ In this case the source of the relative path is the current buffer or file."
 	      (file-relative-name filename)
 	      filename))))
 
+;; edit an (already) opened file as "sudo"
+(use-package sudo-edit
+  :after recentf
+  :defines recentf-exclude
+  :init
+  ;; exclude files which were opened with root from the recent files
+  ;; otherwise every call to `recentf' would prompt for the password
+  (add-to-list 'recentf-exclude "/sudo.*")
+  :general
+  (my/leader-key
+    :infix my/infix/files
+    "es" '(sudo-edit :which-key "sudo")))
+
 ;;;* buffers
 
 ;; remap emacs faces per buffer
@@ -1036,6 +1072,60 @@ _V_: shrink   _H_: shrink
     ("=" balance-windows)
     ("q" nil)))
 
+;; window movement functions
+(use-package windmove
+  :ensure nil
+  :config
+  (my/leader-key
+    :infix my/infix/windows
+    ;; delete other windows
+    "dh" '(windmove-delete-left :which-key "left")
+    "dj" '(windmove-delete-down :which-key "down")
+    "dk" '(windmove-delete-up :which-key "up")
+    "dl" '(windmove-delete-right :which-key "right")
+    "w" '(:ignore t :which-key "Swap Windows")
+    "wh" '(windmove-swap-states-left :which-key "left")
+    "wj" '(windmove-swap-states-down :which-key "down")
+    "wk" '(windmove-swap-states-up :which-key "up")
+    "wl" '(windmove-swap-states-right :which-key "right")))
+
+
+;; record window layout configurations (for undo/redo)
+(use-package winner
+  :ensure nil
+  :config
+  (winner-mode) ; start "recording"
+
+  (my/leader-key
+    :infix my/infix/windows
+    "u" '(winner-undo :which-key "winner undo")))
+
+;; mark windows with numbers for easier navigation
+(use-package winum
+  :custom
+  (winum-scope 'frame-local)
+  (winum-auto-setup-mode-line nil) ; prevent modeline auto configuration
+  :config
+  ;; use the `which-key-replacement-alist' to bundle "winum-select-window-x" functions in `which-key' to a single entry
+  (push '(("\\(.*\\) 0" . "winum-select-window-0") . ("\\1 0..9" . "window 0..9"))
+	which-key-replacement-alist)
+  (push '((nil . "winum-select-window-[1-9]") . t)
+	which-key-replacement-alist)
+
+  (my/leader-key
+    "0" 'winum-select-window-0
+    "1" 'winum-select-window-1
+    "2" 'winum-select-window-2
+    "3" 'winum-select-window-3
+    "4" 'winum-select-window-4
+    "5" 'winum-select-window-5
+    "6" 'winum-select-window-6
+    "7" 'winum-select-window-7
+    "8" 'winum-select-window-8
+    "9" 'winum-select-window-9)
+
+  (winum-mode))
+
 ;;;* frames
 
 ;; creating, switching and deleting emacs frames
@@ -1054,6 +1144,12 @@ _V_: shrink   _H_: shrink
     (select-frame (make-frame))))
 
 ;;;* miscellaneous
+
+;; a collection of packages which do not fit within another more specific category
+
+;;;** internal
+
+;; built-in packages of emacs
 
 ;; a grab-bag of basic emacs commands not specifically related to something else
 (use-package simple
@@ -1152,6 +1248,116 @@ _V_: shrink   _H_: shrink
   (my/leader-key
     :infix my/infix/buffer
     "u" '(undo-tree-visualize :which-key "undo tree")))
+
+;; menu for install/remove/upgrade packages
+(use-package package
+  :ensure nil
+  :config
+  (my/leader-key
+    :infix my/infix/custom
+    "p" '(list-packages :which-key "package menu"))
+
+  (my/major-mode-leader-key
+    :keymaps 'package-menu-mode-map
+    :major-modes t
+    "" '(:ignore t :which-key "Package Menu")
+    "f" '(package-menu-filter-by-name :which-key "filter by name")
+    "c" '(package-menu-clear-filter :which-key "clear filters")))
+
+;; display the visible line numbers
+(use-package display-line-numbers
+  :ensure nil
+  :hook ((prog-mode . display-line-numbers-mode))
+  :custom
+  ;; count number of lines for the needed line-number width beforehand
+  (display-line-numbers-width-start t)
+  ;; don't shrink available space to prevent "flickering"
+  (display-line-numbers-grow-only t)
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "n" '(display-line-numbers-mode :which-key "line numbers")))
+
+;; highlight the current line
+(use-package hl-line
+  :ensure nil
+  :config
+  ;; highlight the current line by default
+  (global-hl-line-mode)
+
+  (defun my//global-hl-line-wk-replacement (entry)
+    "Which key replacement function for the global hl-line mode."
+    (let ((key (car entry)))
+      (if (bound-and-true-p global-hl-line-mode)
+	`(,key . "[X] line highlighting")
+	`(,key . "[ ] line highlighting"))))
+
+  (my/leader-key
+    :infix my/infix/toggle
+    "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
+
+;; move the mouse cursor out of the way
+(use-package avoid
+  :ensure nil
+  :custom
+  (mouse-avoidance-banish-position
+   ;; default values (top right corner)
+   '((frame-or-window . frame)
+     (side . right)
+     (side-pos . 3)
+     ;; lower top cursor position to avoid clashing with the
+     ;; headerline or the title bar buttons (minimize, maximize, etc.)
+     (top-or-bottom . top)
+     (top-or-bottom-pos . 3)))
+  :config (mouse-avoidance-mode 'banish))
+
+;;;** external
+
+;; restart emacs from within emacs
+(use-package restart-emacs
+  :general
+  (my/leader-key
+    :infix my/infix/quit
+    "r" '(restart-emacs :which-key "restart")))
+
+;; quickly jump to symbol occurences in "spacemacs style"
+(use-package highlight-symbol
+  :after hydra
+  :general
+  (my/normal-state-keys "*" 'hydra-symbol/body)
+  :config
+  (defhydra hydra-symbol (:hint nil
+			  :body-pre
+			  (progn
+			    (highlight-symbol)        ; activate symbol highlighting
+			    (global-hl-line-mode -1)) ; deactivate highlighting of the current line
+			  :before-exit
+			  (progn
+			    (highlight-symbol-remove-all) ; remove symbol highlighting
+			    (global-hl-line-mode)))       ; re-activate highlighting of the current line
+    "
+^Navigation^   ^Display^    ^Edit^
+^^^^^^-----------------------------------------
+_n_: next      _z_: center  _r_: query replace
+_N_: previous
+^^^^^^-----------------------------------------
+[_q_]: quit
+^^^^^^-----------------------------------------
+"
+    ("n" highlight-symbol-next)
+    ("N" highlight-symbol-prev)
+    ("z" evil-scroll-line-to-center)
+    ("r" highlight-symbol-query-replace :exit t)
+    ("q" nil)))
+
+;; highlight "TODO" (and other) keywords
+(use-package hl-todo
+  :config
+  (global-hl-todo-mode))
+
+;; only collect garbage when idling
+(use-package gcmh
+  :init (gcmh-mode 1))
 
 ;;;* spellchecker
 
@@ -1337,59 +1543,6 @@ _N_: previous error _c_: correct word
   (rainbow-delimiters-depth-8-face ((t (:foreground "medium violet red"
 					:weight semi-bold))))
   :hook ((prog-mode . rainbow-delimiters-mode)))
-
-;;;* windows
-
-(use-package winner
-  :ensure nil
-  :config
-  ;; activate `winner' minor-mode to record window configuration changes
-  (winner-mode)
-  (my/leader-key
-    :infix my/infix/windows
-    "u" '(winner-undo :which-key "winner undo")))
-
-;; mark windows with numbers for easier navigation
-(use-package winum
-  :init
-  ;; use the 'which-key-replacement-alist' to bundle 'winum-select-window-x' functions in which-key to one entry
-  (push '(("\\(.*\\) 0" . "winum-select-window-0") . ("\\1 0..9" . "window 0..9"))
-	which-key-replacement-alist)
-  (push '((nil . "winum-select-window-[1-9]") . t)
-	which-key-replacement-alist)
-  :custom
-  (winum-scope 'frame-local)
-  (winum-auto-setup-mode-line nil) ; do not add the window number to the modeline autmatically
-  :config
-  ;; we don't want to create autoloads here and therefore skip the ':general' keyword
-  (my/leader-key
-    "0" 'winum-select-window-0
-    "1" 'winum-select-window-1
-    "2" 'winum-select-window-2
-    "3" 'winum-select-window-3
-    "4" 'winum-select-window-4
-    "5" 'winum-select-window-5
-    "6" 'winum-select-window-6
-    "7" 'winum-select-window-7
-    "8" 'winum-select-window-8
-    "9" 'winum-select-window-9)
-  (winum-mode))
-
-;; window utility functins
-(use-package windmove
-  :ensure nil
-  :config
-  (my/leader-key
-    :infix my/infix/windows
-    "w" '(:ignore t :which-key "Swap")
-    "wh" '(windmove-swap-states-left :which-key "left")
-    "wj" '(windmove-swap-states-down :which-key "down")
-    "wk" '(windmove-swap-states-up :which-key "up")
-    "wl" '(windmove-swap-states-right :which-key "right")
-    "dh" '(windmove-delete-left :which-key "left")
-    "dj" '(windmove-delete-down :which-key "down")
-    "dk" '(windmove-delete-up :which-key "up")
-    "dl" '(windmove-delete-right :which-key "right")))
 
 ;;;* tabs
 
@@ -3100,156 +3253,7 @@ _k_: previous visible   _H_: hide all      _z_: center
   :custom-face (outline-minor-0 ((t (:extend nil))))
   :hook (outline-minor-mode . outline-minor-faces-add-font-lock-keywords))
 
-;;;* misc
-
-;;;** emacs internal
-
-;; add some useful keybindings for the emacs package menu
-(use-package package
-  :ensure nil
-  :config
-  (my/leader-key
-    :infix my/infix/custom
-    "p" '(list-packages :which-key "package menu"))
-  (my/major-mode-leader-key
-    :keymaps 'package-menu-mode-map
-    :major-modes t
-    "" '(:ignore t :which-key "Package Menu")
-    "f" '(package-menu-filter-by-name :which-key "filter by name")
-    "c" '(package-menu-clear-filter :which-key "clear filters")))
-
-;; display line numbers in buffers
-(use-package display-line-numbers
-  :ensure nil
-  :hook ((prog-mode . display-line-numbers-mode))
-  :custom
-  ;; count number of lines for the needed line-number width
-  (display-line-numbers-width-start t)
-  ;; don't shrink available space to prevent "flickering"
-  (display-line-numbers-grow-only t)
-  :general
-  (my/leader-key
-    :infix my/infix/toggle
-    "n" '(display-line-numbers-mode :which-key "line numbers")))
-
-;; highlight the current line
-(use-package hl-line
-  :ensure nil
-  :config
-  ;; highlight the current line by default
-  (global-hl-line-mode)
-
-  (defun my//global-hl-line-wk-replacement (entry)
-    "Which key replacement function for the global hl-line mode."
-    (let ((key (car entry)))
-      (if (bound-and-true-p global-hl-line-mode)
-	`(,key . "[X] line highlighting")
-	`(,key . "[ ] line highlighting"))))
-
-  (my/leader-key
-    :infix my/infix/toggle
-    "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
-
-;; move the mouse cursor out of the way
-(use-package avoid
-  :ensure nil
-  :custom
-  (mouse-avoidance-banish-position
-   ;; default values (top right corner)
-   '((frame-or-window . frame)
-     (side . right)
-     (side-pos . 3)
-     ;; lower top cursor position to avoid clashing with the
-     ;; headerline or the title bar buttons (minimize, maximize, etc.)
-     (top-or-bottom . top)
-     (top-or-bottom-pos . 3)))
-  :config (mouse-avoidance-mode 'banish))
-
-;;;** external packages
-
-;; restart emacs from within emacs
-(use-package restart-emacs
-  :general
-  (my/leader-key
-    :infix my/infix/quit
-    "r" '(restart-emacs :which-key "restart")))
-
-;; edit an (already) opened file as "sudo"
-(use-package sudo-edit
-  :after recentf
-  :defines recentf-exclude
-  :init
-  ;; exclude sudo opened file from the recentf list
-  ;; otherwise we would always be prompted for our password
-  (add-to-list 'recentf-exclude "/sudo.*")
-  :general
-  (my/leader-key
-    :infix my/infix/files
-    "es" '(sudo-edit :which-key "sudo")))
-
-;; quickly jump to symbol occurences in "spacemacs style"
-(use-package highlight-symbol
-  :after hydra
-  :general
-  (my/normal-state-keys "*" 'hydra-symbol/body)
-  :config
-  (defhydra hydra-symbol (:hint nil
-			  :body-pre
-			  (progn
-			    (highlight-symbol)        ; activate symbol highlighting
-			    (global-hl-line-mode -1)) ; deactivate highlighting of the current line
-			  :before-exit
-			  (progn
-			    (highlight-symbol-remove-all) ; remove symbol highlighting
-			    (global-hl-line-mode)))       ; re-activate highlighting of the current line
-    "
-^Navigation^   ^Display^    ^Edit^
-^^^^^^-----------------------------------------
-_n_: next      _z_: center  _r_: query replace
-_N_: previous
-^^^^^^-----------------------------------------
-[_q_]: quit
-^^^^^^-----------------------------------------
-"
-    ("n" highlight-symbol-next)
-    ("N" highlight-symbol-prev)
-    ("z" evil-scroll-line-to-center)
-    ("r" highlight-symbol-query-replace :exit t)
-    ("q" nil)))
-
-;; highlight "todo" (and other) keywords
-(use-package hl-todo
-  :config
-  (global-hl-todo-mode))
-
-;; the garbage collection magic hack to only gc when you are idle
-(use-package gcmh
-  :init (gcmh-mode 1))
-
-;; disable the default mouse behavior
-(use-package disable-mouse
-  :after evil
-  :config
-  ;; declare the evil state maps to prevent compiler warnings
-  (defvar evil-normal-state-map)
-  (defvar evil-visual-state-map)
-  (defvar evil-operator-state-map)
-  (defvar evil-insert-state-map)
-  (defvar evil-motion-state-map)
-  (defvar evil-replace-state-map)
-  (defvar evil-emacs-state-map)
-
-  ;; manually disable the mouse bindings in all the evil state maps
-  (mapc 'disable-mouse-in-keymap
-	(list evil-normal-state-map
-	      evil-visual-state-map
-	      evil-operator-state-map
-	      evil-insert-state-map
-	      evil-motion-state-map
-	      evil-replace-state-map
-	      evil-emacs-state-map)))
-
-;;;** utility functions
+;;;* utility functions
 
 (defun java/run-tomcat ()
   "Start your local Tomcat instance.
