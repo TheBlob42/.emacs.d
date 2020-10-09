@@ -318,7 +318,97 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 	    (error (concat "User config does not contain any value for the key: '" key "'")))
 	  value)))))
 
-;;;* styling and appeal
+;;;* keybindings
+
+;; display available keybindings
+(use-package which-key
+  :custom
+  (which-key-idle-delay 0.3)
+  (which-key-sort-order 'which-key-prefix-then-key-order)
+  :config (which-key-mode 1))
+
+;; more convenient key definitions in emacs
+(use-package general
+  :init
+  ;; upper case top level prefixes
+  (defconst my/infix/frames "F")
+  (defconst my/infix/toggle "T")
+  ;; lower case top level prefixes
+  (defconst my/infix/buffer "b")
+  (defconst my/infix/custom "c")
+  (defconst my/infix/dired "d")
+  (defconst my/infix/files "f")
+  (defconst my/infix/git "g")
+  (defconst my/infix/insert "i")
+  (defconst my/infix/jump "j")
+  (defconst my/infix/org "o")
+  (defconst my/infix/projects "p")
+  (defconst my/infix/quit "q")
+  (defconst my/infix/search "s")
+  (defconst my/infix/tabs "t")
+  (defconst my/infix/windows "w")
+  (defconst my/infix/text "x")
+  :config
+  ;; declare general definers for the leader
+  (general-create-definer my/leader-key
+    :states '(normal visual motion emacs insert)
+    :keymaps 'override
+    :prefix "SPC"
+    :non-normal-prefix "C-SPC")
+
+  ;; unbind "SPC" to prevent conflicts with other keybindings
+  (my/leader-key "" nil)
+
+  ;; declare general definers for the local leader (current major mode)
+  (general-create-definer my/major-mode-leader-key
+    :states '(normal visual motion emacs insert)
+    :keymaps 'override
+    :prefix "SPC m"
+    :non-normal-prefix "C-SPC m")
+
+  ;; set top level prefix `which-key' description
+  (mapc (lambda (x)
+	   (let ((prefix-key (-first-item x))
+		 (prefix-desc (-second-item x)))
+	   (eval `(my/leader-key
+		    ,prefix-key '(:ignore t :which-key ,prefix-desc)))))
+	`((,my/infix/frames "Frames")
+	  (,my/infix/toggle "Toggles")
+	  (,my/infix/buffer "Buffer")
+	  (,my/infix/custom "Custom")
+	  (,my/infix/dired "Dired")
+	  (,my/infix/files "Files")
+	  (,my/infix/git "Git")
+	  (,my/infix/insert "Insert")
+	  (,my/infix/jump "Jump")
+	  (,my/infix/org "Org")
+	  (,my/infix/projects "Projects")
+	  (,my/infix/quit "Quit")
+	  (,my/infix/search "Search")
+	  (,my/infix/tabs "Tabs")
+	  (,my/infix/windows "Windows")
+	  (,my/infix/text "Text")))
+
+  ;;
+  ;; declare definers for different `evil' states
+  ;;
+
+  (general-create-definer my/all-states-keys
+    :states '(normal visual motion emacs insert))
+  (general-create-definer my/normal-state-keys
+    :states '(normal motion))
+  (general-create-definer my/visual-state-keys
+    :states '(visual))
+  (general-create-definer my/insert-state-keys
+    :states '(insert)))
+
+;; make emacs bindings that stick around
+(use-package hydra)
+
+;; building commands with prefix keys and arguments
+(use-package transient)
+
+;;;* styling
 
 ;;;** theme
 
@@ -347,7 +437,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
 
-;; dark theme
+;; dark theme & config
 (use-package modus-vivendi-theme
   :custom
   (modus-vivendi-theme-rainbow-headings t)
@@ -390,6 +480,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
       (if my--dark-mode-enabled
 	`(,key . "[X] dark mode")
 	`(,key . "[ ] dark mode"))))
+
+  ;; configure a keybinding to switch between light & dark
+  (my/leader-key
+    :infix my/infix/toggle
+    "D" '(my/toggle-dark-mode :which-key my//dark-mode-wk-replacement))
 
   (defun my//load-theme-on-startup ()
     "Checks the current time and loads the appropriate theme (light or dark) for it."
@@ -559,320 +654,6 @@ inherits the other properties from the parent face:
 		     :priority 80)
       (major-mode :priority 90))))
 
-;;;* keybindings
-
-(use-package which-key
-  :custom
-  (which-key-idle-delay 0.3)
-  (which-key-sort-order 'which-key-prefix-then-key-order)
-  :config (which-key-mode 1))
-
-(use-package general
-  :init
-  ;; define all first level infixes
-  (defvar my/infix/frames "F")
-  (defvar my/infix/toggle "T")
-  (defvar my/infix/buffer "b")
-  (defvar my/infix/dired "d")
-  (defvar my/infix/custom "c")
-  (defvar my/infix/files "f")
-  (defvar my/infix/git "g")
-  (defvar my/infix/insert "i")
-  (defvar my/infix/jump "j")
-  (defvar my/infix/projects "p")
-  (defvar my/infix/quit "q")
-  (defvar my/infix/search "s")
-  (defvar my/infix/tabs "t")
-  (defvar my/infix/windows "w")
-  (defvar my/infix/text "x")
-  :config
-  ;; |--------------------------------------------------|
-  ;; |##################################################|
-  ;; |### Create definers for the leader key
-  
-  (general-create-definer my/leader-key
-    :states '(normal visual motion emacs insert)
-    :keymaps 'override
-    :prefix "SPC"
-    :non-normal-prefix "C-SPC")
-
-  (general-create-definer my/major-mode-leader-key
-    :states '(normal visual motion emacs insert)
-    :keymaps 'override
-    :prefix "SPC m"
-    :non-normal-prefix "C-SPC m")
-
-  ;; unbind "SPC" to prevent conflicts with other keybindings
-  (my/leader-key "" nil)
-
-  ;; |--------------------------------------------------|
-  ;; |##################################################|
-  ;; |### Create definers for different evil states
-  
-  (general-create-definer my/all-states-keys
-    :states '(normal visual motion emacs insert))
-  (general-create-definer my/normal-state-keys
-    :states '(normal motion))
-  (general-create-definer my/visual-state-keys
-    :states '(visual))
-  (general-create-definer my/insert-state-keys
-    :states '(insert))
-  
-  ;; |--------------------------------------------------|
-  ;; |--- General emacs keybindings
-
-  (my/insert-state-keys
-    "C-d" 'delete-char)
-  
-  ;; |--------------------------------------------------|
-  ;; |--- Frames
-  
-  (defun my/new-frame ()
-    "Create a new frame and focus it."
-    (interactive)
-    (select-frame (make-frame)))
-  
-  (my/leader-key
-    :infix my/infix/frames
-    "" '(:ignore t :which-key "Frames")
-    "n" '(my/new-frame :which-key "new frame")
-    "o" '(other-frame :which-key "switch frame")
-    "d" '(delete-frame :which-key "delete frame"))
-  
-  ;; |--------------------------------------------------|
-  ;; |--- Toggle & Show
-  
-  (my/leader-key
-    :infix my/infix/toggle
-    "" '(:ignore t :which-key "Toggles")
-    "D" '(my/toggle-dark-mode :which-key my//dark-mode-wk-replacement)
-    "w" '(whitespace-mode :which-key "whitespaces")
-    "t" '(toggle-truncate-lines :which-key "truncated lines"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Buffers
-
-   (defun my/switch-to-last-buffer ()
-     "Switch to the most recent buffer in this window.
-Repeated calls toggle back and forth between the two most recent buffers."
-     (interactive)
-     (switch-to-buffer (other-buffer (current-buffer) 1)))
-
-  (my/leader-key "TAB" '(my/switch-to-last-buffer :which-key "previous buffer"))
-
-  (defun my/new-empty-buffer ()
-    "Create a new empty buffer."
-    (interactive)
-    (let ((buffer (generate-new-buffer "untitled")))
-      (switch-to-buffer buffer)
-      ;; use text-mode as the default major-mode
-      (text-mode)
-      ;; disable font-lock-mode in case you want to insert large amounts of text
-      (font-lock-mode -1)
-      ;; mark buffer as modified, so we are able to save it as an empty file
-      (set-buffer-modified-p t)
-      ;; ask if the buffer should be saved when quitting emacs
-      (setq buffer-offer-save t)
-      buffer))
-  
-  ;; source: https://emacs.stackexchange.com/a/171
-  (defun my/revert-buffer ()
-    "Synchronize the buffer state with the corresponding file."
-    (interactive)
-    (revert-buffer t (not (buffer-modified-p)) t))
-
-  (my/leader-key
-    :infix my/infix/buffer
-    "" '(:ignore t :which-key "Buffers")
-    "n" '(my/new-empty-buffer :which-key "new")
-    "u" '(undo-tree-visualize :which-key "undo-tree")
-    "d" '(kill-current-buffer :which-key "kill")
-    "r" '(my/revert-buffer :which-key "revert"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Files
-
-  (defun my/save-buffer-to-file ()
-    "Save the buffer content to a new file."
-    (interactive)
-    (write-region (point-min)
-		  (point-max)
-		  (read-file-name "New filename: " buffer-file-name nil nil nil)))
-  
-  (defun my/delete-file-and-buffer ()
-    "Kill the current buffer and deletes the file it is visiting."
-    (interactive)
-    (let ((filename (buffer-file-name)))
-      (when (and filename (y-or-n-p (concat "Do you really want to delete '" buffer-file-name "'")))
-	(if (vc-backend filename)
-          (vc-delete-file filename)
-          (progn
-            (delete-file filename)
-            (message "Deleted file %s" filename)
-            (kill-buffer))))))
-  
-  (defun my/rename-file-and-buffer ()
-    "Rename the current buffer and file it is visiting."
-    (interactive)
-    (let ((filename (buffer-file-name)))
-      (if (not (and filename (file-exists-p filename)))
-          (message "Buffer is not visiting a file!")
-	(let ((new-name (read-file-name "New name: " filename)))
-          (cond
-           ((vc-backend filename) (vc-rename-file filename new-name))
-           (t
-            (rename-file filename new-name t)
-            (set-visited-file-name new-name t t)))))))
-
-  (my/leader-key
-    :infix my/infix/files
-    "" '(:ignore t :which-key "Files")
-    "s" '(save-buffer :which-key "save file")
-    "e" '(:ignore t :which-key "Edit")
-    "er" '(my/rename-file-and-buffer :which-key "rename")
-    "ed" '(my/delete-file-and-buffer :which-key "delete")
-    "ec" '(my/save-buffer-to-file :which-key "copy"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Git
-
-  (my/leader-key
-    :infix my/infix/git
-    "" '(:ignore t :which-key "Git"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Insert
-
-  (defun my/insert-relative-file-path (filename)
-    "Insert the relative path to FILENAME (from the current buffer/file)."
-    (interactive "*fInsert file name: \n")
-    (insert (file-relative-name filename)))
-  
-  (defun my/insert-full-file-path (filename)
-    "Insert the absolute path to FILENAME."
-    (interactive "*fInsert file name: \n")
-    (insert filename))
-
-  (my/leader-key
-    :infix my/infix/insert
-    "" '(:ignore t :which-key "Insert")
-    "f" '(my/insert-full-file-path :which-key "file path")
-    "F" '(my/insert-relative-file-path :which-key "relative file path"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Jump
-
-  (my/leader-key
-    :infix my/infix/jump
-    "" '(:ignore t :which-key "Jump"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Projects
-
-  (my/leader-key
-    :infix my/infix/projects
-    "" '(:ignore t :which-key "Projects"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Dired
-
-  (my/leader-key
-    :infix my/infix/dired
-    "" '(:ignore t :which-key "Dired"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Quit
-
-  (my/leader-key
-    :infix my/infix/quit
-    "" '(:ignore t :which-key "Quit")
-    "q" '(save-buffers-kill-terminal :which-key "quit"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Search
-
-  (my/leader-key
-    :infix my/infix/search
-    "" '(:ignore t :which-key "Search"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Tabs
-
-  (my/leader-key
-    :infix my/infix/tabs
-    "" '(:ignore t :which-key "Tabs"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Window
-
-  (my/leader-key
-   :infix my/infix/windows
-   "" '(:ignore t :which-key "Windows")
-   "m" '(delete-other-windows :which-key "maximize")
-   "x" '(kill-buffer-and-window :which-key "kill buffer & window"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Text
-
-  (my/leader-key
-    :infix my/infix/text
-    "" '(:ignore t :which-key "Text"))
-
-  ;; |--------------------------------------------------|
-  ;; |--- Custom
-
-  (my/leader-key
-    :infix my/infix/custom
-    "" '(:ignore t :which-key "Custom")))
-
-(use-package hydra
-  :general
-  (my/leader-key
-    :infix my/infix/buffer
-    "+" '(hydra-zoom/body :which-key "[text size]"))
-  (my/leader-key
-    :infix my/infix/windows
-    "+" '(hydra-window/body :which-key "[window size]"))
-  :config
-  (defun my/default-text-size ()
-    "Reset the text size to the default value."
-    (interactive)
-    (text-scale-set 0))
-
-  (defun my/shrink-window-vertically ()
-    "Shrink the vertical window size."
-    (interactive)
-    (let ((current-prefix-arg '(-1)))
-      (call-interactively 'enlarge-window)))
-  
-  ;; hydra to zoom the text inside the current buffer
-  (defhydra hydra-zoom ()
-    "Text zoom level (current buffer)"
-    ("+" text-scale-increase "zoom in")
-    ("-" text-scale-decrease "zoom out")
-    ("0" my/default-text-size "default")
-    ("q" nil "quit"))
-
-  ;; hydra to size the current window
-  (defhydra hydra-window (:hint nil)
-    "
-^Vertical^    ^Horizontal^  ^Balance^
-^^^^^^^^---------------------------------
-_v_: enlarge  _h_: enlarge  _=_: balance
-_V_: shrink   _H_: shrink
-^^^^^^^^---------------------------------
-[_q_]: quit
-^^^^^^^^---------------------------------
-"
-    ("v" enlarge-window)
-    ("V" my/shrink-window-vertically)
-    ("h" enlarge-window-horizontally)
-    ("H" shrink-window-horizontally)
-    ("=" balance-windows)
-    ("q" nil)))
-
-(use-package transient)
-
 ;;;* evil
 
 ;; an extensible vi layer which emulates the main features of vim and turns emacs into a modal editor
@@ -915,10 +696,11 @@ _V_: shrink   _H_: shrink
   (add-hook 'minibuffer-setup-hook 'evil-insert-state)
 
   ;; just some general useful insert state keybindings
-  (my/insert-state-keys
+  (general-def 'insert
     ;; "restore" some emacs bindings
     "C-a" 'evil-beginning-of-line
     "C-e" 'evil-end-of-visual-line
+    "C-d" 'delete-char
     ;; utility insert state bindings
     "M-o" 'evil-open-below
     "M-O" 'evil-open-above)
@@ -1093,6 +875,283 @@ It does so without changing the current state and point position."
 	      evil-multiedit-insert-state-map)
    "C-n" 'evil-multiedit-next
    "C-p" 'evil-multiedit-prev))
+
+;;;* files
+
+;; file related operations & functions
+(use-package files
+  :ensure nil
+  :init
+  (defun my//insert-file-path-wk-replacement (entry)
+    ""
+    (let ((key (car entry)))
+      (if prefix-arg
+	`(,key . "file path [rel]")
+	`(,key . "file path [abs]"))))
+  :general
+  (my/leader-key
+    :infix my/infix/files
+    "s" '(save-buffer :which-key "save file")
+    "e" '(:ignore t :which-key "Edit")
+    "ec" '(my/copy-current-file :which-key "copy")
+    "er" '(my/rename-current-file-and-buffer :which-key "rename")
+    "ed" '(my/delete-current-file-and-buffer :which-key "delete"))
+
+  (my/leader-key
+    :infix my/infix/insert
+    "f" '(my/insert-file-path :which-key my//insert-file-path-wk-replacement))
+
+  (my/leader-key
+    :infix my/infix/quit
+    "q" '(save-buffers-kill-terminal :which-key "quit"))
+  :config
+  (defun my/revert-buffer ()
+    "Synchronize the current buffer's state with its corresponding file."
+    (interactive)
+    (revert-buffer t (not (buffer-modified-p)) t))
+
+  (defun my/copy-current-file ()
+    "Copy the current file.
+Throws a `user-error' if the current buffer does not visit a file."
+    (interactive)
+    (if buffer-file-name
+      (let ((new-file (read-file-name (format "Copy %s to file: " buffer-file-name))))
+	(copy-file buffer-file-name new-file 1))
+      (user-error "Current buffer does not visit a file")))
+
+  (defun my/rename-current-file-and-buffer ()
+    "Rename the current file.
+Throws a `user-error' if the current buffer does not visit a file or if the file does not exist."
+    (interactive)
+    (if buffer-file-name
+	(if (file-exists-p buffer-file-name)
+	  (let ((new-name (read-file-name (format "Rename %s to: " buffer-file-name))))
+	    (cond
+	     ((vc-backend buffer-file-name) (vc-rename-file buffer-file-name new-name))
+	     (t (rename-file buffer-file-name new-name 1)
+		(set-visited-file-name new-name t t))))
+	   (user-error "File does not exist"))
+	(user-error "Current buffer does not visit a file")))
+
+  (defun my/delete-current-file-and-buffer ()
+    "Delete the current file.
+Throws a `user-error' if the current buffer does not visit a file."
+    (interactive)
+    (if buffer-file-name
+	(when (y-or-n-p (format "Do you really want to delete %s? " buffer-file-name))
+	  (if (vc-backend buffer-file-name)
+	      (vc-delete-file buffer-file-name)
+	    (progn
+	      (delete-file buffer-file-name)
+	      (message "Deleted file %s" buffer-file-name)
+	      (kill-buffer))))
+      (user-error "Current buffer does not visit a file")))
+
+  (defun my/insert-file-path (filename &optional arg)
+    "Inserts the absolute path to FILENAME.
+
+If called with any prefix ARG this will instead insert the relative path to FILENAME.
+In this case the source of the relative path is the current buffer or file."
+    (interactive "*fInsert file name: \nP")
+    (insert (if arg
+	      (file-relative-name filename)
+	      filename))))
+
+;;;* buffers
+
+;; remap emacs faces per buffer
+(use-package face-remap
+  :ensure nil
+  :general
+  (my/leader-key
+    :infix my/infix/buffer
+    "z" '(hydra-zoom/body :which-key "[zoom level]"))
+  :config
+  (defun my/default-text-size ()
+    "Reset the text size to the default value."
+    (interactive)
+    (text-scale-set 0))
+
+  ;; hydra to zoom the text inside the current buffer
+  (defhydra hydra-zoom ()
+    "Text zoom level (current buffer)"
+    ("i" text-scale-increase "zoom in")
+    ("o" text-scale-decrease "zoom out")
+    ("0" my/default-text-size "default")
+    ("q" nil "quit")))
+
+;; interactively flip between recently visited buffers
+(use-package iflipb
+  :custom
+  (iflipb-format-buffers-function
+   'iflipb-format-buffers-vertically) ; display buffers in a vertical list
+  (iflipb-wrap-around t)              ; restart from the beginning when the end of the buffer list is reached
+  (iflipb-ignore-buffers nil)         ; do not ignore any buffers
+  :general
+  (my/leader-key "TAB" 'hydra-iflipb/body)
+  :config
+  (defhydra hydra-iflipb (;; call `iflipb-next-buffer' before the hydra opens to directly start a new `iflipb' sequence without any additional key press
+			  :body-pre (iflipb-next-buffer nil)
+			  ;; `iflipb' checks the `last-command' to see if the next call should move the selection in the current sequence or if a new one should be started
+			  ;; to ensure that the hydra does not interfere with this procedure the `last-command' is set manually before each key press
+			  :pre (setq last-command 'iflipb-next-buffer))
+    ""
+    ("TAB" iflipb-next-buffer "backwards")
+    ("<backtab>" iflipb-previous-buffer "forwards")
+    ("q" nil "quit")))
+
+;;;* windows
+
+;; basic configuration for windows
+;; NOTE: since 'window.el.gz' does not provide a feature we have to use the emacs pseudo package
+(use-package emacs
+  :config
+  (my/leader-key
+    :infix my/infix/windows
+    "=" '(hydra-window/body :which-key "[window size]")
+    "m" '(delete-other-windows :which-key "maximize")
+    "x" '(kill-buffer-and-window :which-key "kill buffer & window"))
+
+  (defun my/shrink-window-vertically ()
+    "Shrink the vertical window size."
+    (interactive)
+    (let ((current-prefix-arg '(-1)))
+      (call-interactively 'enlarge-window)))
+
+  ;; hydra to size the current window
+  (defhydra hydra-window (:hint nil)
+    "
+^Vertical^    ^Horizontal^  ^Balance^
+^^^^^^^^---------------------------------
+_v_: enlarge  _h_: enlarge  _=_: balance
+_V_: shrink   _H_: shrink
+^^^^^^^^---------------------------------
+[_q_]: quit
+^^^^^^^^---------------------------------
+"
+    ("v" enlarge-window)
+    ("V" my/shrink-window-vertically)
+    ("h" enlarge-window-horizontally)
+    ("H" shrink-window-horizontally)
+    ("=" balance-windows)
+    ("q" nil)))
+
+;;;* frames
+
+;; creating, switching and deleting emacs frames
+(use-package frame
+  :ensure nil
+  :general
+  (my/leader-key
+    :infix my/infix/frames
+    "n" '(my/new-frame :which-key "new frame")
+    "o" '(other-frame :which-key "switch frame")
+    "d" '(delete-frame :which-key "delete frame"))
+  :config
+  (defun my/new-frame ()
+    "Create a new frame and focus it."
+    (interactive)
+    (select-frame (make-frame))))
+
+;;;* miscellaneous
+
+;; a grab-bag of basic emacs commands not specifically related to something else
+(use-package simple
+  :ensure nil
+  :init
+  (defvar my--visual-line-toggle nil
+    "Indicator if the \"visual line mode\" with custom keybindings is enabled for the current buffer.")
+
+  (defun my//visual-line-wk-replacement (entry)
+    "Which key replacement function for the custom `visual-line-mode'."
+    (let ((key (car entry)))
+      (if my--visual-line-toggle
+	`(,key . "[X] visual lines")
+	`(,key . "[ ] visual lines"))))
+
+  (defun my//truncate-lines-wk-replacement (entry)
+    "Which key replacement function for `truncate-lines'."
+    (let ((key (car entry)))
+      (if truncate-lines
+	`(,key . "[X] truncated lines")
+	`(,key . "[ ] truncated lines"))))
+  :general
+  (my/leader-key
+    "u" '(universal-argument :which-key "universal argument"))
+
+  (my/leader-key
+    :infix my/infix/toggle
+    "l" '(my/toggle-visual-line :which-key my//visual-line-wk-replacement)
+    "t" '(toggle-truncate-lines :which-key my//truncate-lines-wk-replacement))
+
+  (my/leader-key
+    :infix my/infix/buffer
+    "a" '(mark-whole-buffer :which-key "select all content")
+    "d" '(kill-current-buffer :which-key "kill")
+    "n" '(my/new-empty-buffer :which-key "new"))
+
+  (general-define-key
+   :states '(normal insert)
+    "C-M-<backspace>" 'delete-indentation
+    "C-M-<backspace>" 'delete-indentation)
+  :config
+  (defun my/new-empty-buffer ()
+    "Create a new empty buffer."
+    (interactive)
+    (let ((buffer (generate-new-buffer "untitled")))
+      (switch-to-buffer buffer)  ; switch current window to new buffer
+      (fundamental-mode)         ; set default major-mode to `fundamental-mode'
+      (font-lock-mode -1)        ; disable `font-lock-mode' to prevent issues with large amounts of text
+      (set-buffer-modified-p t)  ; mark buffer as modified, so we are able to save it as an emtpy file
+      (setq buffer-offer-save t) ; ask if the buffer should be save when quitting emacs
+      buffer))
+
+  (defun my/toggle-visual-line ()
+    "Toggle `visual-line-mode' and set custom keybindings for it."
+    (interactive)
+    (if my--visual-line-toggle
+      ;; deactivate `visual-line-mode'
+      (progn
+	(visual-line-mode -1)
+	(evil-normalize-keymaps))
+      ;; activate `visual-line-mode'
+      (progn
+	(visual-line-mode)
+	(general-define-key
+	 :definer 'minor-mode
+	 :states '(normal motion)
+	 :keymaps 'visual-line-mode
+	 "j" 'evil-next-visual-line
+	 "k" 'evil-previous-visual-line
+	 "<down>" 'evil-next-visual-line
+	 "<up>" 'evil-previous-visual-line)
+	(evil-normalize-keymaps)))
+    (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
+
+;; visualize blanks (TAB, (HARD) SPACE & NEWLINE)
+(use-package whitespace
+  :ensure nil
+  :init
+  (defun my//whitespace-wk-replacement (entry)
+    "Which key replacement function for `whitespace-mode'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p whitespace-mode)
+	`(,key . "[X] whitespaces")
+	`(,key . "[ ] whitespaces"))))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "w" '(whitespace-mode :which-key my//whitespace-wk-replacement)))
+
+;; TODO remove this dependency
+;; since evil is not dependend on `undo-tree' anymore (see https://github.com/emacs-evil/evil/issues/1074)
+;; we can remove it and either switch to `undo-fu' or to emacs 28 (which contains `undo-redo')
+(use-package undo-tree
+  :ensure nil
+  :general
+  (my/leader-key
+    :infix my/infix/buffer
+    "u" '(undo-tree-visualize :which-key "undo tree")))
 
 ;;;* spellchecker
 
@@ -3105,55 +3164,6 @@ _k_: previous visible   _H_: hide all      _z_: center
      (top-or-bottom . top)
      (top-or-bottom-pos . 3)))
   :config (mouse-avoidance-mode 'banish))
-
-;; a grab-bag of basic emacs commands not specifically related to something else
-(use-package simple
-  :ensure nil
-  :init
-  ;; toggle the visual line mode
-  (defvar my--visual-line-toggle nil)
-
-  (defun my//visual-line-which-key-replacement (entry)
-    "Which key replacement function for the 'visual line mode'."
-    (let ((key (car entry)))
-      (if my--visual-line-toggle
-	`(,key . "[X] visual lines")
-	`(,key . "[ ] visual lines"))))
-  :general
-  (my/leader-key
-    :infix my/infix/toggle
-    "l" '(my/toggle-visual-line :which-key my//visual-line-which-key-replacement))
-
-  (my/leader-key
-    :infix my/infix/buffer
-    "a" '(mark-whole-buffer :which-key "select all content"))
-
-  (general-define-key
-   :states '(normal insert)
-    "C-M-<backspace>" 'delete-indentation
-    "C-M-<backspace>" 'delete-indentation)
-  :config
-  (defun my/toggle-visual-line ()
-    "Toggle `visual-line-mode' and set custom keybindings for it."
-    (interactive)
-    (if my--visual-line-toggle
-      ;; deactivate `visual-line-mode'
-      (progn
-	(visual-line-mode -1)
-	(evil-normalize-keymaps))
-      ;; activate `visual-line-mode'
-      (progn
-	(visual-line-mode)
-	(general-define-key
-	 :definer 'minor-mode
-	 :states '(normal motion)
-	 :keymaps 'visual-line-mode
-	 "j" 'evil-next-visual-line
-	 "k" 'evil-previous-visual-line
-	 "<down>" 'evil-next-visual-line
-	 "<up>" 'evil-previous-visual-line)
-	(evil-normalize-keymaps)))
-    (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
 
 ;;;** external packages
 
