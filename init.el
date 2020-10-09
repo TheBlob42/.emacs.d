@@ -388,29 +388,6 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 ;; building commands with prefix keys and arguments
 (use-package transient)
 
-;; disable the default mouse behavior
-(use-package disable-mouse
-  :after evil
-  :config
-  ;; declare the evil state maps to prevent compiler warnings
-  (defvar evil-normal-state-map)
-  (defvar evil-visual-state-map)
-  (defvar evil-operator-state-map)
-  (defvar evil-insert-state-map)
-  (defvar evil-motion-state-map)
-  (defvar evil-replace-state-map)
-  (defvar evil-emacs-state-map)
-
-  ;; manually disable the mouse bindings in all the evil state maps
-  (mapc 'disable-mouse-in-keymap
-	(list evil-normal-state-map
-	      evil-visual-state-map
-	      evil-operator-state-map
-	      evil-insert-state-map
-	      evil-motion-state-map
-	      evil-replace-state-map
-	      evil-emacs-state-map)))
-
 ;;;* styling
 
 ;;;** theme
@@ -758,6 +735,29 @@ It does so without changing the current state and point position."
     "k" '(evil-window-up :which-key "go up")
     "d" '(:ignore t :which-key "Delete Window")
     "dd" '(evil-window-delete :which-key "current"))
+
+  ;; disable the default mouse behavior
+  (use-package disable-mouse
+    :after evil
+    :config
+    ;; declare the evil state maps to prevent compiler warnings
+    (defvar evil-normal-state-map)
+    (defvar evil-visual-state-map)
+    (defvar evil-operator-state-map)
+    (defvar evil-insert-state-map)
+    (defvar evil-motion-state-map)
+    (defvar evil-replace-state-map)
+    (defvar evil-emacs-state-map)
+
+    ;; manually disable the mouse bindings in all the evil state maps
+    (mapc 'disable-mouse-in-keymap
+	  (list evil-normal-state-map
+		evil-visual-state-map
+		evil-operator-state-map
+		evil-insert-state-map
+		evil-motion-state-map
+		evil-replace-state-map
+		evil-emacs-state-map)))
 
   (evil-mode))
 
