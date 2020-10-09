@@ -17,7 +17,9 @@
 
 ;;; Code:
 
-;;;* startup optimizations
+;;;* setup
+
+;;;** startup optimizations
 
 ;; keep the startup time of Emacs low by applying the following techniques:
 ;; - use "lexical-binding" (see first line of this file)
@@ -55,8 +57,6 @@
      gc-cons-percentage 0.1
      ;; reset `file-name-handler-alist' to avoid complications
      file-name-handler-alist my--file-name-handler-alist)))
-
-;;;* basic settings
 
 ;;;** sane defaults
 
