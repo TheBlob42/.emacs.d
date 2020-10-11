@@ -994,6 +994,13 @@ In this case the source of the relative path is the current buffer or file."
 	      (file-relative-name filename)
 	      filename))))
 
+;; re-open recently opened files
+(use-package recentf
+  :ensure nil
+  :custom
+  ;; increase number of saved recent files (default: 20)
+  (recentf-max-saved-items 50))
+
 ;; edit an (already) opened file as "sudo"
 (use-package sudo-edit
   :after recentf
@@ -1156,6 +1163,321 @@ _V_: shrink   _H_: shrink
     "Create a new frame and focus it."
     (interactive)
     (select-frame (make-frame))))
+
+;;;* ivy/counsel/swiper
+
+;; a generic completion frontend for emacs
+(use-package ivy
+  :custom
+  (ivy-count-format "(%d/%d) ")          ; format for the number of candidates
+  (ivy-use-virtual-buffers t)            ; enable virtual buffers (e.g. recent files & bookmarks)
+  (ivy-magic-slash-non-match-action nil) ; allow "/" to create new non-existent directories
+  (ivy-use-selectable-prompt t)          ; makes the prompt line (line 0) selectable
+  (ivy-fixed-height-minibuffer t)        ; fixate the height of the minibuffer even if there are fewer candidates
+  (ivy-read-action-format-function
+   'ivy-read-action-format-columns)      ; use several columns for the actions docstring if needed
+  :config
+  ;;
+  ;; minibuffer configuration for integration with `evil' states
+  ;;
+
+  ;; adapt keybindings for the `evil' states in the minibuffer
+  (general-define-key
+   :states '(normal insert emacs)
+   :keymaps 'ivy-minibuffer-map
+   ;; enable up and down navigation in ivy buffer with 'C-j' and 'C-k'
+   "C-k" 'ivy-previous-line
+   "C-j" 'ivy-next-line
+   ;; rebind some generic `ivy' keybindings for all states
+   "C-o" 'hydra-ivy/body
+   "M-o" 'ivy-dispatching-done
+   "M-O" nil
+   "RET" 'ivy-done
+   ;; add bindings to (un)mark candidates without using the `ivy-hydra'
+   "M-m" 'ivy-mark
+   "M-u" 'ivy-unmark)
+
+  ;; close the ivy hydra when the minibuffer is closed to prevent weird states
+  (add-hook 'minibuffer-exit-hook 'hydra-keyboard-quit)
+
+  ;;
+  ;; buffer switching configuration
+  ;;
+
+  (defun my/ivy-switch-buffer (&optional arg)
+    "Call `ivy-switch-buffer' but ignore certain types of buffers if a prefix ARG is passed."
+    (interactive "P")
+    (let ((ivy-ignore-buffers (if arg
+				  (append ivy-ignore-buffers
+					  '("^ *\\*")    ; ignore all "system buffers"
+					  '("^:")        ; ignore `dired-sidebar' buffers
+					  '("^magit"))   ; ignore `magit' buffers
+				ivy-ignore-buffers)))
+      (ivy-switch-buffer)))
+
+  (defun my//switch-buffer-wk-replacement (entry)
+    "Which key replacment function for `my/ivy-switch-buffer' to indicate if a prefix argument is currently present."
+    (let ((key (car entry)))
+      (if prefix-arg
+	`(,key . "switch (filtered)")
+	`(,key . "switch (all)"))))
+
+  (my/leader-key
+    "bb" '(my/ivy-switch-buffer :which-key my//switch-buffer-wk-replacement))
+
+  ;; shortcut keybinding to kill a buffer from ivy completion
+  (general-define-key
+   :states '(normal insert emacs)
+   :keymaps 'ivy-switch-buffer-map
+   "C-d" 'ivy-switch-buffer-kill)
+
+  ;;
+  ;; `ivy-occur' configuration
+  ;;
+
+  ;; keybindings to easily switch to `wgrep' from `ivy-occur'
+  (my/major-mode-leader-key
+    :keymaps 'ivy-occur-grep-mode-map
+    "" '(:ignore t :which-key "Ivy Occur")
+    "Y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer")
+    "W" '(ivy-wgrep-change-to-wgrep-mode :which-key "switch to wgrep"))
+
+  (defun my/copy-content-to-new-buffer ()
+    "Copy content of the current buffer into a new one and kill the old one."
+    (interactive)
+    (let ((old-buffer (current-buffer))
+	  (new-buffer (generate-new-buffer "untitled")))
+      (copy-to-buffer new-buffer (point-min) (point-max))
+      (switch-to-buffer new-buffer)
+      (fundamental-mode)
+      (kill-buffer old-buffer)))
+
+  (ivy-mode 1))
+
+;; ivy interface for `xref' results
+(use-package ivy-xref
+  :after ivy
+  :init
+  ;; xref initialization is slightly different starting with emacs version 27
+  ;; for more information see -> https://github.com/alexmurray/ivy-xref
+  (when (>= emacs-major-version 27)
+    (setq xref-show-definitions-function #'ivy-xref-show-defs))
+  (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
+
+;; collection of ivy enhanced versions of emacs commands
+(use-package counsel
+  :after (ivy transient)
+  :general
+  (my/leader-key
+    "SPC" '(counsel-M-x :which-key "M-x"))
+
+  (my/leader-key
+    :infix my/infix/files
+    "f" '(counsel-find-file :which-key "find file")
+    "r" '(counsel-recentf :which-key "recent file"))
+
+  (my/leader-key
+    :infix my/infix/insert
+    "c" '(my/insert-color-hex :which-key "color hex code"))
+
+  (my/leader-key
+    :infix my/infix/search
+     "d" '(my/counsel-ag-transient :which-key "search in directory"))
+
+  (my/leader-key
+    :infix my/infix/jump
+    "i" '(counsel-semantic-or-imenu :which-key "imenu"))
+  :config
+  (defun my/insert-color-hex ()
+    "Insert a W3C color hex code."
+    (interactive)
+    (let* ((ivy-inhibit-action t) ; set `ivy-inhibit-action' to prevent any ivy action
+	   (color (counsel-colors-web)))
+      (counsel-colors-action-insert-hex color)))
+
+  ;;
+  ;; create a transient command for the `counsel-ag' function
+  ;; enable the silver searcher command line arguments as configuration options
+  ;;
+
+  (defun my/ag-elsewhere-suffix (&optional args)
+    "Choose a directory, then execute `counsel-ag' within it."
+    (interactive (list (transient-args 'my/counsel-ag-transient)))
+    (counsel-ag nil                                                ; no initial input
+		(counsel-read-directory-name "Select directory: ") ; choose directory
+		(s-join " " args)))                                ; pass ag arguments
+
+  (transient-define-suffix my//ag-current-directory-suffix (args)
+    "Execute a search with `counsel-ag' in the current default directory."
+    :description (lambda () (concat (propertize default-directory 'face 'font-lock-keyword-face)
+				    " (current default directory)"))
+    (interactive (list (transient-args 'my/counsel-ag-transient)))
+    (counsel-ag nil                 ; no initial input
+		default-directory   ; use current `default-directory'
+		(s-join " " args))) ; pass ag arguments
+
+  (defun my//ag-select-file-extension (&rest _ignored)
+    "Parse all available sg file extension options. Choose one of the available options via `ivy-read'."
+    (let* (;; list all ag file types and extract parameter and description
+	   ;; e.g. ("--actionscript" ".as  .mxml")
+	   (ext-strings (-map #'cdr (s-match-strings-all "\\(--.*?\\)\n\s+\\(.*?\\)\n"
+							 (shell-command-to-string "ag --list-file-types"))))
+	   ;; calculate max length so we can use it for the alignment of the ivy candidates
+	   (max-length (-max (-map #'seq-length (-map #'-first-item ext-strings))))
+	   (formatted-type-strings (-map (lambda (x)
+					   (let ((parameter (-first-item x))
+						 (description (-second-item x)))
+					     (concat
+					      ;; remove leading dashes
+					      (substring parameter 2)
+					      ;; fill with spaces for a matching alignment
+					      (s-repeat (- max-length (seq-length parameter)) " ")
+					      " [" description "]")))
+					 ext-strings))
+	   (ext (condition-case nil
+		    (ivy-read "Select file extension: " formatted-type-strings
+			      :require-match t)
+		  (quit nil)))) ; catch local quit within ivy completion
+      (if (not ext)
+	""
+	(concat "--" (-first-item (s-split " " ext))))))
+
+  (transient-define-argument my--ag-file-type ()
+    :description "File Types"
+    :class 'transient-option
+    :key "T"
+    :argument ""
+    :reader 'my//ag-select-file-extension)
+
+  (transient-define-argument my--ag-file-search-regex ()
+    :description "Limit search to filenames matching PATTERN"
+    :class 'transient-option
+    :key "-G"
+    :argument "--file-search-regex"
+    :reader (lambda (&rest _ignored)
+	      (concat " " (read-string "PATTERN: "))))
+
+  (transient-define-argument my--ag-ignore-regex ()
+    :description "Ignore files/directories matching PATTERN"
+    :class 'transient-option
+    :key "-I"
+    :argument "--ignore"
+    :reader (lambda (&rest _ignored)
+	      (concat " " (read-string "PATTERN: "))))
+
+  (transient-define-prefix my/counsel-ag-transient ()
+    "Search Options"
+    ["Search Options"
+     ("-f" "Follow symlinks" "--follow")
+     (my--ag-file-search-regex)
+     (my--ag-ignore-regex)
+     ("-u" "Search ALL files" "--unrestricted")
+     ("-U" "Ignore VCS ignore files" "--skip-vcs-ignores")
+     ("-v" "Invert match" "--invert-match")
+     ("-z" "Search contents of compressed (e.g. gzip) files" "--search-zip")
+     (my--ag-file-type)]
+    ["Execute search in"
+     ("d" my//ag-current-directory-suffix)
+     ("e" "elsewhere" my/ag-elsewhere-suffix)])
+
+  (counsel-mode 1))
+
+;; ivy enhanced alternative to `isearch'
+(use-package swiper
+  :after ivy
+  :custom (swiper-goto-start-of-match t) ; put cursor on match start (instead of the end)
+  :general
+  (my/leader-key
+    :infix my/infix/search
+    "s" '(swiper :which-key "search in current file"))
+
+  ;; pass currently selected region in `visual-state'
+  (my/leader-key
+    :states 'visual
+    :infix my/infix/search
+    "s" '(my/swiper-with-input :which-key "search in current file"))
+  :config
+  (defun my/swiper-with-input (start end)
+    "Call `swiper' for search but with the inital input of the current region (START to END)."
+    (interactive "r")
+    (let ((region-string (buffer-substring start end)))
+      (swiper region-string))))
+
+;; style utilities to make ivy minibuffers more pretty
+(use-package ivy-rich
+  :after (ivy all-the-icons)
+  :defines all-the-icons-dir-icon-alist
+  ;; set local `tab-width' for the minibuffer to ensure nice icon alignment
+  :hook ((minibuffer-setup . (lambda () (setq-local tab-width 2))))
+  :custom
+  (ivy-rich-path-style 'abbrev)  ; show abbreviated paths
+  (ivy-virtual-abbreviate 'full) ; abbreviation for virtual buffers
+  (ivy-rich-display-transformers-list
+   '(ivy-switch-buffer
+     (:columns
+      ((my//ivy-rich-switch-buffer-icon (:width 2))
+       (ivy-rich-candidate (:width 30))
+       (ivy-rich-switch-buffer-size (:width 7))
+       (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
+       (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
+       (ivy-rich-switch-buffer-project (:width 15 :face success)) ; return project name using `projectile'
+       ;; return file path relative to project root or `default-directory' if project is nil
+       (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
+      :predicate (lambda (cand) (get-buffer cand))
+      :delimiter "\t")
+     counsel-M-x
+     (:columns
+      ((counsel-M-x-transformer (:width 45))
+       (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+     counsel-recentf
+     (:columns
+      ((my//ivy-rich-file-icon)
+       (ivy-rich-candidate (:width 0.8))
+       (ivy-rich-file-last-modified-time (:face font-lock-comment-face)))
+      :delimiter "\t")
+     counsel-find-file
+     (:columns
+      ((my//ivy-rich-file-icon)
+       (ivy-rich-candidate (:width 0.8))))))
+  :config
+  (defun my//ivy-rich-switch-buffer-icon (candidate)
+    "Display the appropriate icon for the `major-mode' of CANDIDATE."
+    (with-current-buffer (get-buffer candidate)
+      (let ((icon (all-the-icons-icon-for-mode major-mode)))
+	(if (symbolp icon)
+	  (all-the-icons-icon-for-mode 'fundamental-mode) ; fall back to `fundamental-mode' icon
+	  icon))))
+
+  (defun my//ivy-rich-file-icon (candidate)
+    "Display the appropriate icon for file type of CANDIDATE.
+It covers some special cases for different directory types.
+The code was \"inspired\" from this config: https://ladicle.com/post/config/"
+    (let ((icon (if (file-directory-p candidate)
+		    ;; special cases for directories
+		    (cond
+		     ;; - tramp
+		     ((and (fboundp 'tramp-tramp-file-p)
+			   (tramp-tramp-file-p default-directory))
+		      (all-the-icons-octicon "file-directory"))
+		     ;; - symlink folder
+		     ((file-symlink-p candidate)
+		      (all-the-icons-octicon "file-symlink-directory"))
+		     ;; - git submodule
+		     ((all-the-icons-dir-is-submodule candidate)
+		      (all-the-icons-octicon "file-submodule"))
+		     ;; - git repository
+		     ((file-exists-p (format "%s/.git" candidate))
+		      (all-the-icons-octicon "repo"))
+		     ;; - default directory
+		     (t (let ((matcher (all-the-icons-match-to-alist candidate all-the-icons-dir-icon-alist)))
+			  (apply (car matcher) (list (cadr matcher))))))
+		  ;; in case of a "regular" file candidate
+		  (all-the-icons-icon-for-file candidate))))
+      (if (symbolp icon)
+	(all-the-icons-faicon "file-o") ; fall back to basic file icon
+	icon)))
+
+  (ivy-rich-mode 1))
 
 ;;;* miscellaneous
 
@@ -1373,6 +1695,15 @@ _N_: previous
 (use-package gcmh
   :init (gcmh-mode 1))
 
+;; edit grep buffer and apply those changes to the corresponding file buffer
+;; e.g. very useful in combination with `ivy-occur'
+(use-package wgrep
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'wgrep-mode-map
+    "c" '(wgrep-finish-edit :which-key "(wgrep) finish edit")
+    "k" '(wgrep-abort-changes :which-key "(wgrep) cancel edit")))
+
 ;;;* spellchecker
 
 ;; emacs handles spell-checking and corrections of words, regions or buffers via the built-in `ispell' package.
@@ -1582,287 +1913,6 @@ _N_: previous error _c_: correct word
     "d" 'tab-bar-close-tab
     "t" 'tab-bar-select-tab-by-name
     "r" 'tab-bar-rename-tab))
-
-;;;* ivy, counsel & swiper
-
-;; a generic completion frontend for emacs
-(use-package ivy
-  :custom
-  (ivy-count-format "(%d/%d) ")          ; format for the number of candidates
-  (ivy-use-virtual-buffers t)            ; enable virtual buffers (e.g. recent files & bookmarks)
-  (ivy-magic-slash-non-match-action nil) ; allow "/" to create new non-existent directories
-  (ivy-use-selectable-prompt t)          ; makes the prompt line (line 0) selectable
-  (ivy-fixed-height-minibuffer t)        ; fixate the height of the minibuffer even if there are fewer candidates
-  (ivy-read-action-format-function
-   'ivy-read-action-format-columns)      ; use several columns for the actions docstring if needed
-  :config
-  (defun my/ivy-switch-to-non-system-buffer ()
-    "Call `ivy-switch-buffer' but ignore certain types of 'system' buffers."
-    (interactive)
-    (let ((ivy-ignore-buffers (append ivy-ignore-buffers
-				      '("^ *\\*")    ; ignore all "system buffers"
-				      '("^:")        ; ignore `dired-sidebar' buffers
-				      '("^magit")))) ; ignore `magit' buffers
-      (ivy-switch-buffer)))
-
-  (my/leader-key
-    "bb" '(ivy-switch-buffer :which-key "switch")
-    "bB" '(my/ivy-switch-to-non-system-buffer :which-key "switch (no sys)"))
-
-  ;; close the ivy hydra when the minibuffer is closed to prevent weird states
-  (add-hook 'minibuffer-exit-hook 'hydra-keyboard-quit)
-
-  ;; adapt keybindings for the `evil' states in the minibuffer
-  (general-define-key
-   :states '(normal insert emacs)
-   :keymaps 'ivy-minibuffer-map
-   ;; enable up and down navigation in ivy buffer with 'C-j' and 'C-k'
-   "C-k" 'ivy-previous-line
-   "C-j" 'ivy-next-line
-   ;; rebind some generic `ivy' keybindings for all states
-   "C-o" 'hydra-ivy/body
-   "M-o" 'ivy-dispatching-done
-   "M-O" nil
-   "RET" 'ivy-done
-   ;; add bindings to (un)mark candidates without using the `ivy-hydra'
-   "M-m" 'ivy-mark
-   "M-u" 'ivy-unmark)
-
-  ;; shortcut keybinding to kill a buffer from ivy
-  (general-define-key
-   :states '(normal insert emacs)
-   :keymaps 'ivy-switch-buffer-map
-   "C-d" 'ivy-switch-buffer-kill)
-
-  (ivy-mode 1))
-
-(use-package ivy-xref
-  :after ivy
-  :init
-  ;; xref initialization is different in Emacs 27
-  ;; there are two different variables which can be set rather than just one
-  (when (>= emacs-major-version 27)
-    (setq xref-show-definitions-function #'ivy-xref-show-defs))
-  ;; necessary in Emacs <27. In Emacs 27 it will affect all xref-based commands
-  ;; other than xref-find-definitions (e.g. project-find-regexp) as well
-  (setq xref-show-xrefs-function #'ivy-xref-show-xrefs))
-
-(use-package counsel
-  :after ivy
-  :custom (recentf-max-saved-items 50) ; increase number of saved recent files (default: 20)
-  :general
-  (my/leader-key
-    "SPC" '(counsel-M-x :which-key "M-x"))
-  (my/leader-key
-    :infix my/infix/files
-    "f" '(counsel-find-file :which-key "find file")
-    "r" '(counsel-recentf :which-key "recent file"))
-  (my/leader-key
-    :infix my/infix/insert
-    "c" '(my/insert-color-hex :which-key "color hex code"))
-  (my/leader-key
-    :infix my/infix/search
-    "d" '(my/counsel-ag-transient :which-key "search in directory"))
-  (my/leader-key
-    :infix my/infix/jump
-    "i" '(counsel-semantic-or-imenu :which-key "imenu"))
-  :config
-  (defun my/insert-color-hex ()
-    "Insert a W3C color hex code."
-    (interactive)
-    (let* ((ivy-inhibit-action t) ; set `ivy-inhibit-action' to prevent any ivy action
-	   (color (counsel-colors-web)))
-      (counsel-colors-action-insert-hex color)))
-
-  ;; create a transient command for the `counsel-ag' function
-  ;; enable the silver searcher command line arguments as configuration options
-
-  (defun my/ag-elsewhere-suffix (&optional args)
-    "Choose a directory, then execute `counsel-ag' within it."
-    (interactive (list (transient-args 'my/counsel-ag-transient)))
-    (counsel-ag nil                                                ; no initial input
-		(counsel-read-directory-name "Select directory: ") ; choose directory
-		(s-join " " args)))                                ; pass ag arguments
-
-  (transient-define-suffix my//ag-current-directory-suffix (args)
-    "Execute a search with `counsel-ag' in the current default directory."
-    :description (lambda () (concat (propertize default-directory 'face 'font-lock-keyword-face)
-				    " (current default directory)"))
-    (interactive (list (transient-args 'my/counsel-ag-transient)))
-    (counsel-ag nil default-directory (s-join " " args)))
-
-  (defun my//ag-select-file-extension (&rest _ignored)
-    "Parse all available sg file extension options. Choose one of the available options via ivy."
-    (let* ((ext-strings (s-match-strings-all "\\(--.*?\\)\n\s+\\(.*?\\)\n"
-					     (shell-command-to-string "ag --list-file-types")))
-	   ;; calculate max length so we can use it for the alignment of the ivy candidates
-	   (max-length (-max (-map 'seq-length (-map '-second-item ext-strings))))
-	   (formatted-type-strings (-map (lambda (x)
-					   (concat
-					    (substring (-second-item x) 2)
-					    ;; fill with spaces for a matching alignment
-					    (s-repeat (- max-length (seq-length (-second-item x))) " ")
-					    " [" (-third-item x) "]"))
-					 ext-strings))
-	   (ext (condition-case nil
-		    (ivy-read "Select file extension: " formatted-type-strings
-			      :require-match t)
-		  (quit nil)))) ; catch local quit within ivy
-      (if (not ext)
-	"" (concat "--" (-first-item (s-split " " ext))))))
-
-  (transient-define-argument my--ag-file-type ()
-    :description "File Types"
-    :class 'transient-option
-    :key "T"
-    :argument ""
-    :reader 'my//ag-select-file-extension)
-
-  (transient-define-argument my--ag-file-search-regex ()
-    :description "Limit search to filenames matching PATTERN"
-    :class 'transient-option
-    :key "-G"
-    :argument "--file-search-regex"
-    :reader (lambda (&rest _ignored)
-	      (concat " " (read-string "PATTERN: "))))
-
-  (transient-define-argument my--ag-ignore-regex ()
-    :description "Ignore files/directories matching PATTERN"
-    :class 'transient-option
-    :key "-I"
-    :argument "--ignore"
-    :reader (lambda (&rest _ignored)
-	      (concat " " (read-string "PATTERN: "))))
-
-  (transient-define-prefix my/counsel-ag-transient ()
-    "Search Options"
-    ["Search Options"
-     ("-f" "Follow symlinks" "--follow")
-     (my--ag-file-search-regex)
-     (my--ag-ignore-regex)
-     ("-u" "Search ALL files" "--unrestricted")
-     ("-U" "Ignore VCS ignore files" "--skip-vcs-ignores")
-     ("-v" "Invert match" "--invert-match")
-     ("-z" "Search contents of compressed (e.g. gzip) files" "--search-zip")
-     (my--ag-file-type)]
-    ["Execute search in"
-     ("d" my//ag-current-directory-suffix)
-     ("e" "elsewhere" my/ag-elsewhere-suffix)])
-
-  (counsel-mode 1))
-
-(use-package swiper
-  :after ivy
-  :custom (swiper-goto-start-of-match t) ; put cursor on match start (instead of the end)
-  :general
-  (my/leader-key
-    :infix my/infix/search
-    "s" '(swiper :which-key "search in current file"))
-  (my/leader-key
-    :states 'visual
-    :infix my/infix/search
-    "s" '(my/swiper-with-input :which-key "search in current file"))
-  :config
-  (defun my/swiper-with-input (start end)
-    "Use 'Swiper' for search but with an inital input."
-    (interactive "r")
-    (let ((region-string (buffer-substring start end)))
-      (swiper region-string))))
-
-(use-package wgrep
-  :after (ivy counsel)
-  :commands ivy-wgrep-change-to-wgrep-mode
-  :general
-  ;; keybindings to easliy switch to wgrep from ivy occur
-  (my/major-mode-leader-key
-    :keymaps 'ivy-occur-grep-mode-map
-    :major-modes t
-    "" '(:ignore t :which-key "Ivy Occur")
-    "Y" '(my/copy-content-to-new-buffer :which-key "copy to new buffer")
-    "w" '(ivy-wgrep-change-to-wgrep-mode :which-key "switch to wgrep"))
-  (my/major-mode-leader-key
-    :keymaps 'wgrep-mode-map
-    :major-modes 'ivy-occur-grep-mode
-    "" '(:ignore t :which-key "Wgrep")
-    "c" '(wgrep-finish-edit :which-key "finish edit")
-    "k" '(wgrep-abort-changes :which-key "cancel"))
-  :config
-  (defun my/copy-content-to-new-buffer ()
-    "Copy content of the current buffer into a new one and kill the old one."
-    (interactive)
-    (let ((old-buffer (current-buffer))
-	  (new-buffer (generate-new-buffer "untitled")))
-      (copy-to-buffer new-buffer (point-min) (point-max))
-      (switch-to-buffer new-buffer)
-      (text-mode)
-      (kill-buffer old-buffer))))
-
-;; style utilities to make ivy minibuffers more pretty
-(use-package ivy-rich
-  :after (ivy all-the-icons)
-  :defines all-the-icons-dir-icon-alist
-  ;; set minibuffer local tab-width for correct icon alignment
-  :hook ((minibuffer-setup . (lambda () (setq-local tab-width 2))))
-  :custom
-  (ivy-rich-path-style 'abbrev)
-  (ivy-virtual-abbreviate 'full)
-  (ivy-rich-display-transformers-list
-   '(ivy-switch-buffer
-     (:columns
-      ((ivy-rich-switch-buffer-icon (:width 2))
-       (ivy-rich-candidate (:width 30))
-       (ivy-rich-switch-buffer-size (:width 7))
-       (ivy-rich-switch-buffer-indicators (:width 4 :face error :align right))
-       (ivy-rich-switch-buffer-major-mode (:width 12 :face warning))
-       (ivy-rich-switch-buffer-project (:width 15 :face success)) ; return project name using 'projectile'
-       ;; return file path relative to project root or 'default-directory' if project is nil
-       (ivy-rich-switch-buffer-path (:width (lambda (x) (ivy-rich-switch-buffer-shorten-path x (ivy-rich-minibuffer-width 0.3))))))
-      :predicate (lambda (cand) (get-buffer cand))
-      :delimiter "\t")
-     counsel-M-x
-     (:columns
-      ((counsel-M-x-transformer (:width 45))
-       (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
-     counsel-recentf
-     (:columns
-      ((ivy-rich-file-icon)
-       (ivy-rich-candidate (:width 0.8))
-       (ivy-rich-file-last-modified-time (:face font-lock-comment-face)))
-      :delimiter "\t")
-     counsel-find-file
-     (:columns
-      ((ivy-rich-file-icon)
-       (ivy-rich-candidate (:width 0.8))))))
-  :config
-  (defun ivy-rich-switch-buffer-icon (candidate)
-    "Display the appropriate icon for the 'major-mode' of CANDIDATE."
-    (with-current-buffer
-	(get-buffer candidate)
-      (let ((icon (all-the-icons-icon-for-mode major-mode)))
-	(if (symbolp icon)
-	    (all-the-icons-icon-for-mode 'fundamental-mode)
-	  icon))))
-
-  ;; [src: https://ladicle.com/post/config/]
-  (defun ivy-rich-file-icon (candidate)
-    "Display the appropriate icon for file type of CANDIDATE."
-    (when (display-graphic-p)
-      (let ((icon (if (file-directory-p candidate)
-		      (cond
-		       ((and (fboundp 'tramp-tramp-file-p)
-			     (tramp-tramp-file-p default-directory))
-			(all-the-icons-octicon "file-directory"))
-		       ((file-symlink-p candidate)
-			(all-the-icons-octicon "file-symlink-directory"))
-		       ((all-the-icons-dir-is-submodule candidate)
-			(all-the-icons-octicon "file-submodule"))
-		       ((file-exists-p (format "%s/.git" candidate))
-			(all-the-icons-octicon "repo"))
-		       (t (let ((matcher (all-the-icons-match-to-alist candidate all-the-icons-dir-icon-alist)))
-			    (apply (car matcher) (list (cadr matcher))))))
-		    (all-the-icons-icon-for-file candidate))))
-	icon)))
-  (ivy-rich-mode 1))
 
 ;;;* projects
 
