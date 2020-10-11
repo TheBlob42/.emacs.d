@@ -910,11 +910,11 @@ It does so without changing the current state and point position."
     (make-directory my-backup-directory t))
   :init
   (defun my//insert-file-path-wk-replacement (entry)
-    ""
+    "Whick key replacement function for `my/insert-file-path' to indicate if a prefix argument is currently present."
     (let ((key (car entry)))
       (if prefix-arg
-	`(,key . "file path [rel]")
-	`(,key . "file path [abs]"))))
+	`(,key . "file path (rel)")
+	`(,key . "file path (abs)"))))
   :custom
   ;; save all backup files to a backup folder inside the emacs directory
   (backup-directory-alist `(("." . ,my-backup-directory)))
