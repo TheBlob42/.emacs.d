@@ -1989,7 +1989,7 @@ _N_: previous error _c_: correct word
     :keymaps 'dired-mode-map
     "_" 'my/dired-create-empty-file)
   :config
-  ;; remap the default `dired-do-copy' and `dired-do-delete' functions to our own implementations
+  ;; remap the default `dired-do-copy', `dired-do-delete', `dired-do-rename' and `dired-create-directory' functions to our own implementations
   ;; these revert the buffer afterwards to ensure that the dired buffer content is always up to date
   (defun my/dired-do-copy ()
     "Replacement function for `dired-do-copy' which does revert the buffer afterwards."
@@ -2003,10 +2003,24 @@ _N_: previous error _c_: correct word
     (dired-do-delete)
     (revert-buffer))
 
+  (defun my/dired-create-directory ()
+    "Replacement function for `dired-create-directory' which does revert the buffer afterwards."
+    (interactive)
+    (call-interactively 'dired-create-directory)
+    (revert-buffer))
+
+  (defun my/dired-do-rename ()
+    "Replacement function for `dired-do-rename' which does revert the buffer afterwards."
+    (interactive)
+    (call-interactively 'dired-do-rename)
+    (revert-buffer))
+
   (my/normal-state-keys
     :keymaps 'dired-mode-map
     [remap dired-do-copy] 'my/dired-do-copy
-    [remap dired-do-delete] 'my/dired-do-delete)
+    [remap dired-do-delete] 'my/dired-do-delete
+    [remap dired-do-rename] 'my/dired-do-rename
+    [remap dired-create-directory] 'my/dired-create-directory)
 
   ;; some utility functions for dired
   (defun my/kill-all-dired-buffers ()
