@@ -3053,6 +3053,93 @@ Movement      ^^^^^Rows^            ^Columns^
 (use-package lsp-java
   :hook ((java-mode . lsp))
   :init
+  ;;
+  ;; utility functions to interact with the gradle wrapper (gradlew)
+  ;;
+
+  (defun my//java/execute-task (task wrapper-path)
+    "Execute a given gradle TASK with the gradle-wrapper found at WRAPPER-PATH."
+    (let ((command (concat "cd " wrapper-path " && ./gradlew " task "\n"))
+	  (shell-buffer-name (concat "*gw:" (projectile-project-name) ":" task "*")))
+      (comint-send-string (get-buffer-process (shell shell-buffer-name)) command)
+      (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
+      (goto-char (point-max))))	; moves to the end of the buffer in order to see the most recent logs
+  
+  (defun my//java/get-gradle-wrapper-path ()
+    "Get the path of the project gradle-wrapper.
+If multiple candidates occure, show a seletion via ivy"
+    (if (not (projectile-project-root))
+      (error "Not inside a project!")
+      (let (;; get all gradle wrapper scripts inside the current project
+            (project-wrappers (-map (-partial 's-replace-regexp "gradlew" "")
+                                    (directory-files-recursively (projectile-project-root) "^gradlew$"))))
+	(if (= (length project-wrappers) 0)
+	  (error "No 'gradlew' script found! Are you inside a gradlew based project?")
+	  ;; if there is more than one wrapper show a selection
+	  (if (> (length project-wrappers) 1)
+            (ivy-read "Select the Gradle Wrapper: " project-wrappers)
+            (car project-wrappers))))))
+   
+  (defun my/java/execute-gradlew-task ()
+    "Read a gradle-wrapper task from the input and execute it."
+    (interactive)
+    (let ((gradlew-path (my//java/get-gradle-wrapper-path))
+          (task (read-string "Gradle Task: ")))
+      (my//java/execute-task task gradlew-path)))
+
+  (defvar my//java/gradle-tasks '() "Property list to store all parsed gradlew tasks items per project.")
+
+  (defun my/java/list-gradlew-tasks (&optional arg)
+    "Choose an available gradlew task of the current project via `ivy' and execute it.
+
+This function will parse the output of \"./gradlew tasks --all\" into `ivy' candidates to choose from.
+The parsed candidates are stored in `my//java/gradle-tasks' so repeated calls can reuse those.
+With a given prefix ARG one can force the reload of the saved task list."
+    (interactive "P")
+    (let ((gradlew-path (my//java/get-gradle-wrapper-path))
+	  (current-project-symbol (intern (projectile-project-root))))
+      (when (or arg                                                                ; prefix arg provided
+		(not (plist-member my//java/gradle-tasks current-project-symbol))) ; no tasks saved yet
+	  ;; (re)load and parse gradlew task list
+	  (let* ((gradlew-task-output (shell-command-to-string (concat "cd " gradlew-path " && ./gradlew tasks --all")))
+		 (gradlew-error (-second-item
+				 (s-match "What went wrong:\n\\(.*\\)\n" gradlew-task-output))))
+	    (if gradlew-error
+	      (error (concat "The gradlew script threw an error: " gradlew-error))
+	      (let* ((gradlew-task-group-strings (s-match-strings-all
+						  "\\(^[a-zA-Z ]+\\)\n-+\n\\(\\(?:[a-zA-Z0-9-_]+?\\(?: - .*?\\)?.*\n\\)+\\)"
+						  gradlew-task-output))
+		     (task-items (-flatten
+				  (-map (lambda (x)
+					  (let ((group-name (-second-item x))                           ; extract the task group name
+						(group-tasks (-filter 's-present?                       ; filter out empty strings
+								      (s-split "\n" (-third-item x))))) ; split into separate lines
+					    ;; build formatted task strings -> "[group name] task - task description"
+					    (-map (-partial 'concat "[" group-name "] ") group-tasks)))
+					gradlew-task-group-strings))))
+		;; save parsed `task-items' for reusage
+		(setq my//java/gradle-tasks (plist-put my//java/gradle-tasks current-project-symbol task-items))))))
+      (let ((task (-second-item
+		   (s-match "^\\[.*?\\] \\([^ ]*\\)\\(?: - .*\\)?"
+			    (ivy-read "Select task: " (plist-get my//java/gradle-tasks current-project-symbol))))))
+	;; execute selected gradlew task
+	(my//java/execute-task task gradlew-path))))
+
+  (defun my//java/list-gradlew-tasks-wk-replacement (entry)
+    "Which key replacement function for `my/java/list-gradlew-tasks' which checks for current prefix arg."
+    (let ((key (car entry)))
+      (if prefix-arg
+	`(,key . "task list (refresh)")
+	`(,key . "task list (cache)"))))
+
+  ;; omit the ":general" keyword for these bindings to not create autoloads
+  ;; (these gradlew functions should be usable without loading `lsp-java')
+  (my/leader-key
+    :infix my/infix/custom
+    "g" '(:ignore t :which-key "Gradlew")
+    "gl" '(my/java/list-gradlew-tasks :which-key my//java/list-gradlew-tasks-wk-replacement)
+    "gx" '(my/java/execute-gradlew-task :which-key "execute task"))
+  :config
   (my/lsp-keybindings
    'java-mode-map
    "Java"
@@ -3070,68 +3157,6 @@ Movement      ^^^^^Rows^            ^Columns^
    "dtt" '(dap-java-debug-test-method :which-key "debug test method")
    "dtc" '(dap-java-debug-test-class :which-key "debug test class"))
 
-  (defun my//java/execute-task (task wrapper-path)
-    "Execute a given gradle TASK with the gradle-wrapper found at WRAPPER-PATH."
-    (let ((command (concat "cd " wrapper-path " && ./gradlew " task "\n"))
-	  (shell-buffer-name (concat "*gw:" (projectile-project-name) ":" task "*")))
-      (comint-send-string (get-buffer-process (shell shell-buffer-name)) command)
-      (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
-      (goto-char (point-max))))	; moves to the end of the buffer in order to see the most recent logs
-  
-  (defun my//java/get-gradle-wrapper-path ()
-    "Get the path of the project gradle-wrapper.
-If multiple candidates occure, show a seletion via ivy"
-    (if (not (projectile-project-root))
-      (error "Not inside a project!")
-      (let (;; get all gradle wrappers inside the current project
-            (project-wrappers (-map (-partial 's-replace-regexp "gradlew" "")
-                                    (directory-files-recursively (projectile-project-root) "^gradlew$"))))
-	(if (= (length project-wrappers) 0)
-	  (error "No 'gradlew' script found! Are you inside a gradlew based project?")
-	  ;; if there is more than one wrapper show a selection
-	  (if (> (length project-wrappers) 1)
-            (ivy-read "Select the Gradle Wrapper: " project-wrappers)
-            (car project-wrappers))))))
-
-  (defun my/java/list-gradlew-tasks ()
-    "Choose an available gradlew task via ivy and execute it."
-    (interactive)
-    (let* ((gradlew-path (my//java/get-gradle-wrapper-path))
-	   (gradlew-task-output (shell-command-to-string (concat "cd " gradlew-path " && ./gradlew tasks --all")))
-	   (gradlew-error (-second-item
-			   (s-match "What went wrong:\n\\(.*\\)\n"
-				    gradlew-task-output))))
-      (if gradlew-error
-	(error (concat "The gradlew script threw an error: " gradlew-error))
-	(let* ((gradlew-task-group-strings (s-match-strings-all
-					    "\\(^[a-zA-Z ]+\\)\n-+\n\\(\\(?:[a-zA-Z0-9-_]+?\\(?: - .*?\\)?.*\n\\)+\\)"
-					    gradlew-task-output))
-	       (task-items (-flatten
-			    (-map (lambda (x)
-				    (let ((group-name (-second-item x))                           ; extract the task group name
-					  (group-tasks (-filter 's-present?                       ; filter out empty strings
-								(s-split "\n" (-third-item x))))) ; split into separate lines
-				      ;; build formatted task strings: "[group name] task - task description"
-				      (-map (-partial 'concat "[" group-name "] ") group-tasks)))
-				  gradlew-task-group-strings)))
-	       (task (-second-item
-		      (s-match "^\\[.*?\\] \\([^ ]*\\)\\(?: - .*\\)?"
-			       (ivy-read "Select task: " task-items)))))
-	  (my//java/execute-task task gradlew-path)))))
-   
-  (defun my/java/execute-gradlew-task ()
-    "Read a gradle-wrapper task from the input and execute it."
-    (interactive)
-    (let ((gradlew-path (my//java/get-gradle-wrapper-path))
-          (task (read-string "Gradle Task: ")))
-      (my//java/execute-task task gradlew-path)))
-
-  (my/leader-key
-    :infix my/infix/custom
-    "g" '(:ignore t :which-key "Gradlew")
-    "gl" '(my/java/list-gradlew-tasks :which-key "list tasks")
-    "gx" '(my/java/execute-gradlew-task :which-key "execute task"))
-  :config
   (defun my/java/gradle-refresh ()
     "Navigates to the projects build.gradle file and call 'lsp-java-update-project-configuration'."
     (interactive)
@@ -3147,15 +3172,15 @@ If multiple candidates occure, show a seletion via ivy"
 	      (find-file (car build-gradle-paths)))
 	    (lsp-java-update-project-configuration)   ; update the project configuration (which also updates the dependencies)
 	    (switch-to-buffer buffer))                ; switch window back to previous buffer
-	  (switch-to-buffer-other-window "*lsp-log*") ; open the lsp-log buffer to see the outcome of the configuration update
+	  (switch-to-buffer-other-window "*lsp-log*") ; open the *lsp-log* buffer to see the outcome of the configuration update
 	  (goto-char (point-max))))))                 ; move to the end of the log buffer in order to see the most recent log lines
 
   (my/leader-key
     :infix my/infix/custom
-    "gr" '(my/java/gradle-refresh :which-key "refresh")))
+    "gr" '(my/java/gradle-refresh :which-key "refresh project")))
 
 (use-package dap-java
-  ;; 'dap-java' is part of 'dap-mode' but needs to be loaded extra
+  ;; `dap-java' is part of `dap-mode' but needs to be loaded extra
   :ensure nil
   :after (dap-mode lsp-java))
 
