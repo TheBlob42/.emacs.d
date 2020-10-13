@@ -526,20 +526,6 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 (use-package spaceline-segments
   :ensure spaceline
   :config
-  ;; utility functions
-  (defmacro my//propertize-icon (icon family &rest properties)
-    "Format an ICON of FAMILY to correctly work inside a `spaceline' segment.
-The remaining arguments are face PROPERTIES (key value pairs) to add to the result.
-
-The following snippet will insert a purple 'FontAwesome' icon that correctly
-inherits the other properties from the parent face:
-
-    (my//propertize-icon (all-the-icons-faicon \"bug\")
-                         (all-the-icons-faicon-family)
-                         :foreground \"purple\")"
-    (let ((f (eval family)))
-      `(propertize ,icon 'face '((t (,@properties :family ,f))))))
-
   (defun my//flycheck-status ()
     "If `flycheck-mode' is enabled, check for the current status and show an appropriate icon plus the number of warnings/errors (if any are present)."
     (when (bound-and-true-p flycheck-mode)
@@ -556,38 +542,34 @@ inherits the other properties from the parent face:
 								   'symbol-name
 								   '-first-item) all-errors))))
 			      (warnings-info (when (> warnings 0)
-					       (concat (my//propertize-icon (all-the-icons-faicon "exclamation-circle" :v-adjust 0)
-									    (all-the-icons-faicon-family)
-									    :foreground "dark orange")
+					       (concat (propertize (all-the-icons-faicon "exclamation-circle" :v-adjust 0.05)
+								   'face '((:family "FontAwesome" :foreground "dark orange")))
 						       ;; insert a tiny bit of space between the warning icon and count
-						       (propertize " " 'face '((t (:height 0.2))))
+						       (propertize " " 'face '(:height 0.2 :inherit))
 						       (propertize (format "%s" warnings)
-								   'face '((t (:foreground "dark orange" :weight bold)))))))
+								   'face '((:foreground "dark orange" :weight bold))))))
 			      (errors (assq 'error all-errors))
 			      (errors-info (when errors
-					     (concat (my//propertize-icon (all-the-icons-faicon "ban" :v-adjust 0)
-									  (all-the-icons-faicon-family)
-									  :foreground "red")
+					     (concat (propertize (all-the-icons-faicon "ban" :v-adjust 0.05)
+								 'face '((:family "FontAwesome" :foreground "red")))
 						     ;; insert a tiny bit of space between the error icon and count
-						     (propertize " " 'face '((t (:height 0.2))))
+						     (propertize " " 'face '(:height 0.2 :inherit))
 						     (propertize (format "%s" (cdr errors))
-								 'face '((t (:foreground "red" :weight bold))))))))
+								 'face '((:foreground "red" :weight bold)))))))
 			 (s-join " " (-non-nil (list warnings-info errors-info))))
-		     (my//propertize-icon (all-the-icons-faicon "check-circle" :v-adjust -0.1)
-					  (all-the-icons-faicon-family)
-					  :foreground "dark green")))
-	(`running (my//propertize-icon (all-the-icons-faicon "spinner" :v-adjust -0.1)
-				       (all-the-icons-faicon-family)
-				       :foreground "#29aeff"))
+		     (propertize (all-the-icons-faicon "check-circle" :v-adjust -0.1)
+				 'face '((:family "FontAwesome" :foreground "dark green")))))
+	(`running (propertize (all-the-icons-faicon "spinner" :v-adjust -0.1)
+			      'face '((:family "FontAwesome" :foreground "#29aeff"))))
 	(`no-checker "")
-	(`not-checked (my//propertize-icon (all-the-icons-faicon "frown-o" :v-adjust -0.1)
-					   (all-the-icons-faicon-family)))
-	(`errored     (my//propertize-icon (all-the-icons-faicon "exclamation" :v-adjust -0.1)
-					   (all-the-icons-faicon-family)))
-	(`interrupted (my//propertize-icon (all-the-icons-faicon "plug" :v-adjust -0.1)
-					   (all-the-icons-faicon-family)))
-	(`suspicious  (my//propertize-icon (all-the-icons-faicon "bug" :v-adjust -0.1)
-					   (all-the-icons-faicon-family))))))
+	(`not-checked (propertize (all-the-icons-faicon "frown-o" :v-adjust -0.1)
+				  'face '((:family "FontAwesome"))))
+	(`errored     (propertize (all-the-icons-faicon "exclamation" :v-adjust -0.1)
+				  'face '((:family "FontAwesome"))))
+	(`interrupted (propertize (all-the-icons-faicon "plug" :v-adjust -0.1)
+				  'face '((:family "FontAwesome"))))
+	(`suspicious  (propertize (all-the-icons-faicon "bug" :v-adjust -0.1)
+				  'face '((:family "FontAwesome")))))))
 
   ;; custom spaceline segments
   (spaceline-define-segment my//flycheck
@@ -601,8 +583,8 @@ inherits the other properties from the parent face:
        ;; use `substring' to strip the "Git: " prefix from the branch name
        (s-truncate 45 (substring vc-mode 5))
        " "
-       (propertize (my//propertize-icon (all-the-icons-octicon "git-branch" :v-adjust -0.1)
-					(all-the-icons-octicon-family))
+       (propertize (all-the-icons-octicon "git-branch" :v-adjust -0.1)
+		   'face '((:family "github-octicons"))
 		   ;; show complete branch name on mouse hover over the icon
 		   'help-echo vc-mode))))
 
@@ -610,12 +592,10 @@ inherits the other properties from the parent face:
     "Icon showing the current connection status of `lsp-mode'"
     (when (bound-and-true-p lsp-mode)
       (if (lsp-workspaces)
-	(my//propertize-icon (all-the-icons-faicon "rocket" :v-adjust -0.05)
-			     (all-the-icons-faicon-family)
-			     :foreground "#44bc44")
-	(my//propertize-icon (all-the-icons-faicon "rocket" :v-adjust -0.05)
-			     (all-the-icons-faicon-family)
-			     :foreground "red"))))
+	(propertize (all-the-icons-faicon "rocket" :v-adjust -0.05)
+		    'face '((:family "FontAwesome" :foreground "#44bc44")))
+	(propertize (all-the-icons-faicon "rocket" :v-adjust -0.05)
+		    'face '((:family "FontAwesome" :foreground "red"))))))
 
   (spaceline-define-segment my//lsp-info
     "Displays the `lsp-mode-line' info string"
@@ -628,9 +608,8 @@ inherits the other properties from the parent face:
 	       (bound-and-true-p dap-mode))
       (when-let ((session (dap--cur-session)))
 	(when (dap--session-running session)
-	  (my//propertize-icon (all-the-icons-faicon "bug" :v-adjust -0.1)
-			       (all-the-icons-faicon-family)
-			       :foreground "purple")))))
+	  (propertize (all-the-icons-faicon "bug" :v-adjust -0.1)
+		      'face '((:family "FontAwesome" :foreground "purple")))))))
 
   (spaceline-compile
     ;; left side
