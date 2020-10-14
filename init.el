@@ -3139,7 +3139,8 @@ With a given prefix ARG one can force the reload of the saved task list."
     "g" '(:ignore t :which-key "Gradlew")
     "gl" '(my/java/list-gradlew-tasks :which-key my//java/list-gradlew-tasks-wk-replacement)
     "gx" '(my/java/execute-gradlew-task :which-key "execute task"))
-  :config
+
+  :general
   (my/lsp-keybindings
    'java-mode-map
    "Java"
@@ -3157,6 +3158,7 @@ With a given prefix ARG one can force the reload of the saved task list."
    "dtt" '(dap-java-debug-test-method :which-key "debug test method")
    "dtc" '(dap-java-debug-test-class :which-key "debug test class"))
 
+  :config
   (defun my/java/gradle-refresh ()
     "Navigates to the projects build.gradle file and call 'lsp-java-update-project-configuration'."
     (interactive)
