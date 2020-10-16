@@ -1023,7 +1023,7 @@ In this case the source of the relative path is the current buffer or file."
   (iflipb-format-buffers-function
    'iflipb-format-buffers-vertically) ; display buffers in a vertical list
   (iflipb-wrap-around t)              ; restart from the beginning when the end of the buffer list is reached
-  (iflipb-ignore-buffers nil)         ; do not ignore any buffers
+  (iflipb-ignore-buffers "^[:]")      ; only ignore `dired-sidebar' buffers (starting with ":")
   :general
   (my/leader-key "TAB" '(hydra-iflipb/body :which-key "previous buffer"))
   :config
