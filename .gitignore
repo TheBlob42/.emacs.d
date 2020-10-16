@@ -17,6 +17,9 @@ workspace/
 .dap-breakpoints
 .lsp-session-v1
 
+# cache for the native compilation (gcc) files
+eln-cache/
+
 # other directories
 transient/
 
