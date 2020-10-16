@@ -1144,6 +1144,113 @@ _V_: shrink   _H_: shrink
     (interactive)
     (select-frame (make-frame))))
 
+;;;* tabs
+
+;; tabs are native feature of emacs since version 27
+(when (>= emacs-major-version 27)
+  ;; store and switch easily between different window configurations
+  (use-package tab-bar
+    :ensure nil
+    :custom
+    (tab-bar-show 1)                ; only display the tab-bar if there is more than one tab
+    (tab-bar-close-button-show nil) ; don't show the close button
+    (tab-bar-new-button-show nil)   ; don't show the "new tab" button
+    (tab-bar-new-tab-to 'rightmost) ; always create new tabs on the rightmost position
+    ;; use custom function for the tab naming which adds some padding around the buffer name
+    (tab-bar-tab-name-function 'my//tab-bar-tab-name-current)
+    :custom-face
+    ;; adapt active tab to use the default background color
+    (tab-bar-tab ((t (:background nil :box nil :inherit default))))
+    :general
+    (my/leader-key
+      :infix my/infix/tabs
+      "." '(hydra-tabs/body :which-key "[menu]")
+      "n" '(tab-bar-new-tab :which-key "new")
+      "d" '(my/close-tab :which-key my//close-tab-wk-replacement)
+      "t" '(tab-bar-select-tab-by-name :which-key "switch")
+      "r" '(my/tab-bar-rename-tab :which-key "rename"))
+    :config
+    ;; show the current tab name in the title bar of emacs
+    (defun my//get-current-tab-name ()
+      "Return the name of the current tab."
+      (let* ((tabs (funcall tab-bar-tabs-function))
+             (tab-index (tab-bar--current-tab-index tabs))
+             (tab-name (alist-get 'name (nth tab-index tabs))))
+        tab-name))
+    (setq-default frame-title-format '(:eval (format "%s" (my//get-current-tab-name))))
+
+    ;;
+    ;; give the tabs some padding
+    ;;
+
+    (defun my//add-padding-to-tab-name (name)
+      "Add some space characters around NAME."
+      (concat "  " name "  "))
+
+    (defun my//tab-bar-tab-name-current ()
+      "Same as the default function `tab-bar-tab-name-current' but add some padding around the name."
+      (my//add-padding-to-tab-name
+       (buffer-name (window-buffer (minibuffer-selected-window)))))
+
+    (defun my/tab-bar-rename-tab (name)
+      "Call `tab-bar-rename-tab' but add some padding around the name beforehand."
+      (interactive "sNew name for tab (leave blank for automatic naming): ")
+      (tab-bar-rename-tab (if (s-blank? name) ; no padding for the "automatic naming" cases
+                            name
+                            (my//add-padding-to-tab-name name))))
+
+    ;;
+    ;; custom close tab function
+    ;;
+
+    (defun my//close-tab-wk-replacement (entry)
+      "Which key replacement function for `my/close-tab' that checks for the current prefix argument."
+      (let ((key (car entry)))
+	(if prefix-arg
+	  `(,key . "close (others)")
+	  `(,key . "close (current)"))))
+
+    (defun my/close-tab (arg)
+      "Closes the current tab.
+If the prefix ARG is set, close all other tabs instead."
+      (interactive "P")
+      (if arg
+	(tab-bar-close-other-tabs)
+	(tab-bar-close-tab)))
+    ;;
+    ;; menu hydra for more options
+    ;;
+
+    (defun my/tab-bar-move-tab-left ()
+      "Move the current tab to the left."
+      (interactive)
+      (tab-bar-move-tab -1))
+
+    (defun my/tab-bar-move-tab-right ()
+      "Move the current tab to the right."
+      (interactive)
+      (tab-bar-move-tab 1))
+
+    (defhydra hydra-tabs (:hint nil)
+      "
+^Navigation^   ^Movement^       ^Delete^      ^Misc^
+^^^^^^^^---------------------------------------------------
+_h_: go left   _H_: move left   _d_: current  _n_: new tab
+_l_: go right  _L_: move right  _D_: others   _r_: rename
+^^^^^^^^---------------------------------------------------
+[_q_]: quit
+^^^^^^^^---------------------------------------------------
+"
+      ("n" tab-bar-new-tab)
+      ("d" tab-bar-close-tab)
+      ("D" tab-bar-close-other-tabs)
+      ("r" my/tab-bar-rename-tab)
+      ("h" tab-bar-switch-to-prev-tab)
+      ("l" tab-bar-switch-to-next-tab)
+      ("H" my/tab-bar-move-tab-left)
+      ("L" my/tab-bar-move-tab-right)
+      ("q" nil))))
+
 ;;;* ivy/counsel/swiper
 
 ;; a generic completion frontend for emacs
@@ -1883,31 +1990,6 @@ _N_: previous error _c_: correct word
   (rainbow-delimiters-depth-8-face ((t (:foreground "medium violet red"
 					:weight semi-bold))))
   :hook ((prog-mode . rainbow-delimiters-mode)))
-
-;;;* tabs
-
-;; Tabs are native feature of Emacs since version 27
-
-;; store window configurations in tabs
-(use-package tab-bar-mode
-  :ensure nil
-  :init
-  (defun my/get-tab-name ()
-    "Return the name of the current tab."
-    (let* ((tabs (funcall tab-bar-tabs-function))
-	   (tab-index (or current-prefix-arg (1+ (tab-bar--current-tab-index tabs))))
-	   (tab-name (alist-get 'name (nth (1- tab-index) tabs))))
-      tab-name))
-  ;; show the current tab name as the window name
-  (setq-default frame-title-format '(:eval (format "%s" (my/get-tab-name))))
-  :custom (tab-bar-show nil) ; never display the tab bar
-  :general
-  (my/leader-key
-    :infix my/infix/tabs
-    "n" 'tab-bar-new-tab
-    "d" 'tab-bar-close-tab
-    "t" 'tab-bar-select-tab-by-name
-    "r" 'tab-bar-rename-tab))
 
 ;;;* projects
 
