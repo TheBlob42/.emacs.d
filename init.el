@@ -153,11 +153,6 @@
 ;; answering with 'y' or 'n' is sufficient
 (defalias 'yes-or-no-p 'y-or-n-p)
 
-(use-package help
-  :ensure nil
-  ;; focus new help windows when opened
-  :custom (help-window-select t))
-
 (use-package cus-edit
   :ensure nil
   :custom
@@ -338,6 +333,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defconst my/infix/dired "d")
   (defconst my/infix/files "f")
   (defconst my/infix/git "g")
+  (defconst my/infix/help "h")
   (defconst my/infix/insert "i")
   (defconst my/infix/jump "j")
   (defconst my/infix/org "o")
@@ -378,6 +374,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 	  (,my/infix/dired "Dired")
 	  (,my/infix/files "Files")
 	  (,my/infix/git "Git")
+	  (,my/infix/help "Help")
 	  (,my/infix/insert "Insert")
 	  (,my/infix/jump "Jump")
 	  (,my/infix/org "Org")
@@ -1542,6 +1539,21 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
 	 "<up>" 'evil-previous-visual-line)
 	(evil-normalize-keymaps)))
     (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
+
+;; emacs's built-in help system
+(use-package help
+  :ensure nil
+  ;; focus new help windows when opened
+  :custom (help-window-select t)
+  :config
+  ;; key bindings for the most used help commands
+  (my/leader-key
+    :infix my/infix/help
+    ;; the `counsel' variants highlight interactive functions & customizable variables
+    "f" '(counsel-describe-function :which-key "describe function")
+    "v" '(counsel-describe-variable :which-key "describe variable")
+    "m" '(describe-mode :which-key "describe mode")
+    "k" '(describe-key :which-key "describe key")))
 
 ;; visualize blanks (TAB, (HARD) SPACE & NEWLINE)
 (use-package whitespace
