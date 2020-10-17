@@ -1492,7 +1492,7 @@ _l_: go right  _L_: move right  _D_: others   _r_: rename
 
 ;; style utilities to make ivy minibuffers more pretty
 (use-package ivy-rich
-  :after (ivy all-the-icons)
+  :after (ivy counsel all-the-icons)
   :defines all-the-icons-dir-icon-alist
   ;; set local `tab-width' for the minibuffer to ensure nice icon alignment
   :hook ((minibuffer-setup . (lambda () (setq-local tab-width 2))))
@@ -1516,6 +1516,15 @@ _l_: go right  _L_: move right  _D_: others   _r_: rename
      (:columns
       ((counsel-M-x-transformer (:width 45))
        (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+     counsel-describe-function
+     (:columns
+      ((counsel-describe-function-transformer (:width 40))
+       (ivy-rich-counsel-function-docstring (:face font-lock-doc-face))))
+     counsel-describe-variable
+     (:columns
+      ((counsel-describe-variable-transformer (:width 40))
+       (my//ivy-rich-variable-value (:width 20 :face font-lock-warning-face))
+       (ivy-rich-counsel-variable-docstring (:face font-lock-doc-face))))
      counsel-recentf
      (:columns
       ((my//ivy-rich-file-icon)
@@ -1526,7 +1535,22 @@ _l_: go right  _L_: move right  _D_: others   _r_: rename
      (:columns
       ((my//ivy-rich-file-icon)
        (ivy-rich-candidate (:width 0.8))))))
+
   :config
+  ;;
+  ;; expand `ivy-rich's capabilities with some custom columns:
+  ;; - variable value strings
+  ;; - buffer icons (based on major mode)
+  ;; - file type icons
+  ;;
+
+  (defun my//ivy-rich-variable-value (candidate)
+    "Display the value of the variable represented by CANDIDATE.
+The result will be truncated to a max of 20 characters."
+    (let* ((var-value (symbol-value (intern-soft candidate))) ; use `intern-soft' to avoid creation of a new variable
+	   (var-value-string (prin1-to-string var-value)))
+      (concat " " var-value-string)))
+
   (defun my//ivy-rich-switch-buffer-icon (candidate)
     "Display the appropriate icon for the `major-mode' of CANDIDATE."
     (with-current-buffer (get-buffer candidate)
