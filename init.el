@@ -731,29 +731,6 @@ It does so without changing the current state and point position."
     "d" '(:ignore t :which-key "Delete Window")
     "dd" '(evil-window-delete :which-key "current"))
 
-  ;; disable the default mouse behavior
-  (use-package disable-mouse
-    :after evil
-    :config
-    ;; declare the evil state maps to prevent compiler warnings
-    (defvar evil-normal-state-map)
-    (defvar evil-visual-state-map)
-    (defvar evil-operator-state-map)
-    (defvar evil-insert-state-map)
-    (defvar evil-motion-state-map)
-    (defvar evil-replace-state-map)
-    (defvar evil-emacs-state-map)
-
-    ;; manually disable the mouse bindings in all the evil state maps
-    (mapc 'disable-mouse-in-keymap
-	  (list evil-normal-state-map
-		evil-visual-state-map
-		evil-operator-state-map
-		evil-insert-state-map
-		evil-motion-state-map
-		evil-replace-state-map
-		evil-emacs-state-map)))
-
   (evil-mode))
 
 ;; evil bindings for the parts of emacs that are not covered properly by default
@@ -873,6 +850,24 @@ It does so without changing the current state and point position."
 	      evil-multiedit-insert-state-map)
    "C-n" 'evil-multiedit-next
    "C-p" 'evil-multiedit-prev))
+
+;; `evil-disable-mouse' is a local package an needs to be installed manually
+(when (not (package-installed-p 'evil-disable-mouse))
+  (package-install-file (concat user-emacs-directory "repos/evil-disable-mouse/")))
+
+(use-package evil-disable-mouse
+  :ensure nil
+  :init
+  (defun my//evil-disable-mouse-wk-replacement (entry)
+    "Which key replacement function for `evil-disable-mouse-mode' that checks if the mode is currently active."
+    (let ((key (car entry)))
+      (if (bound-and-true-p evil-disable-mouse-global-mode)
+	`(,key . "[ ] mouse support")
+	`(,key . "[X] mouse support"))))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "M" '(evil-disable-mouse-global-mode :which-key my//evil-disable-mouse-wk-replacement)))
 
 ;;;* files
 
@@ -1761,17 +1756,7 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
 ;; move the mouse cursor out of the way
 (use-package avoid
   :ensure nil
-  :custom
-  (mouse-avoidance-banish-position
-   ;; default values (top right corner)
-   '((frame-or-window . frame)
-     (side . right)
-     (side-pos . 3)
-     ;; lower top cursor position to avoid clashing with the
-     ;; headerline or the title bar buttons (minimize, maximize, etc.)
-     (top-or-bottom . top)
-     (top-or-bottom-pos . 3)))
-  :config (mouse-avoidance-mode 'banish))
+  :config (mouse-avoidance-mode 'cat-and-mouse))
 
 ;;;** external
 
