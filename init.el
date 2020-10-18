@@ -3572,58 +3572,6 @@ to the instance via dap-debug choosing 'Java Attach'."
 
 ;;;* the end
 
-;;;** currently disabled packages
-
-(use-package doom-themes
-  :disabled t
-  :custom
-  (doom-themes-enable-bold t)        ; enable bold faces
-  (doom-themes-enable-italic t)      ; enable italic faces
-  (doom-themes-neotree-file-icons t) ; use the colorful neotree icon theme
-  :config
-  (load-theme 'doom-one t)
-  (doom-themes-neotree-config)
-  ;; corrects (and improves) org-mode's native fontification.
-  (doom-themes-org-config))
-
-(use-package doom-modeline
-  :disabled t
-  :custom
-  (doom-modeline-window-width-limit fill-column)
-  (doom-modeline-buffer-modification-icon t)
-  (doom-modeline-buffer-file-name-style 'file-name)
-  (doom-modeline-vcs-max-length 12)
-  :init (doom-modeline-mode 1))
-
-(use-package neotree
-  :disabled t
-  :custom
-  ;; jump to current file when opening neotree
-  (neo-smart-open t)
-  (neo-window-fixed-size nil)
-  (neo-theme (if (display-graphic-p) 'icons 'arrow))
-  :general
-  (my/leader-key
-    "n" '(neotree-toggle :which-key "neotree"))
-  :config
-  (defun my/neotree-set-default-width ()
-    "Set the neotree window width to 25 (default value)."
-    (interactive)
-    (setq neo-window-width 25)
-    (neo-global--reset-width))
-
-  (my/normal-state-keys
-    :keymaps 'neotree-mode-map
-    "-" '(my/neotree-set-default-width :which-key "minimize"))
-
-  ;; do not resize the neotree window after toggeling
-  ;; [src: https://github.com/jaypei/emacs-neotree/issues/262#issuecomment-383352799]
-  (add-to-list 'window-size-change-functions
-                  (lambda (_)
-                    (let ((neo-window (neo-global--get-window)))
-                      (unless (null neo-window)
-                        (setq neo-window-width (window-width neo-window)))))))
-
 ;;;** local variables & file end
 
 ;; mark 'outline-hide-sublevels' as a safe local variable
