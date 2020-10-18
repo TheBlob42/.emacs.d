@@ -1586,6 +1586,299 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
 
   (ivy-rich-mode 1))
 
+;;;* dired
+
+;; [DIR]ectory [ED]itor for emacs
+(use-package dired
+  :ensure nil
+  :hook (dired-mode . auto-revert-mode) ; automatically revert buffer on file changes
+  :general
+  (my/leader-key
+    :infix my/infix/dired
+    "d" '(dired :which-key "dired")
+    "K" '(my/kill-all-dired-buffers :which-key "kill all dired buffers")
+    "b" '(my/ivy-switch-to-dired-buffer :which-key "switch to dired buffer"))
+
+  (my/major-mode-leader-key
+    :keymaps '(dired-mode-map dired-sidebar-mode-map)
+    "" '(:ignore t :which-key "Dired Mode")
+    "." '(my//hydra/dired/body :which-key "[menu]")
+    "w" '(dired-toggle-read-only :which-key "writable dired"))
+
+  (general-define-key
+    :keymaps 'dired-mode-map
+    :states 'normal
+    "_" 'my/dired-create-empty-file)
+
+  :config
+  ;; evil-integration.el makes `dired-mode-map' an override map
+  ;; unbind SPC to make sure that our prefixes for `my/major-mode-leader-key' work correctly
+  (general-unbind 'normal dired-mode-map "SPC")
+
+  ;; remap the default `dired-do-copy', `dired-do-delete', `dired-do-rename' and `dired-create-directory' functions to our own implementations
+  ;; these revert the buffer afterwards to ensure that the dired buffer content is always up to date and the icons are correctly displayed
+  (defun my/dired-do-copy ()
+    "Replacement function for `dired-do-copy' which does revert the buffer afterwards."
+    (interactive)
+    (dired-do-copy)
+    (revert-buffer))
+
+  (defun my/dired-do-delete ()
+    "Replacement function for `dired-do-delete' which does revert the buffer afterwards."
+    (interactive)
+    (dired-do-delete)
+    (revert-buffer))
+
+  (defun my/dired-create-directory ()
+    "Replacement function for `dired-create-directory' which does revert the buffer afterwards."
+    (interactive)
+    (call-interactively 'dired-create-directory)
+    (revert-buffer))
+
+  (defun my/dired-do-rename ()
+    "Replacement function for `dired-do-rename' which does revert the buffer afterwards."
+    (interactive)
+    (call-interactively 'dired-do-rename)
+    (revert-buffer))
+
+  (my/normal-state-keys
+    :keymaps 'dired-mode-map
+    [remap dired-do-copy] 'my/dired-do-copy
+    [remap dired-do-delete] 'my/dired-do-delete
+    [remap dired-do-rename] 'my/dired-do-rename
+    [remap dired-create-directory] 'my/dired-create-directory)
+
+  ;;
+  ;; some utility functions for dired
+  ;;
+
+  (defun my/kill-all-dired-buffers ()
+    "Kill all currently opened `dired' buffers."
+    (interactive)
+    (let ((dired-buffers (-filter (-compose (-partial 'eq 'dired-mode)
+					    (-partial 'buffer-local-value 'major-mode)) (buffer-list))))
+      (when (yes-or-no-p (concat "Do you really want to kill all "
+				 (number-to-string (length dired-buffers))
+				 " 'dired' buffers?"))
+	(mapc 'kill-buffer dired-buffers))))
+
+  (defun my/dired-create-empty-file ()
+    "Create an empty file within the current `dired' buffer.
+This function respects the current (subtree) directory."
+    (interactive)
+    (when (derived-mode-p 'dired-mode)
+      (let ((default-directory (dired-current-directory)))
+	(call-interactively 'dired-create-empty-file)
+	(revert-buffer))))
+
+  (defun my//only-dired-buffers (buffer)
+    "Filter function to ignore all 'non-dired' buffers."
+    (when (get-buffer buffer)
+      (with-current-buffer buffer
+	(not (eq major-mode 'dired-mode)))))
+
+  (defun my/ivy-switch-to-dired-buffer ()
+    "Call `ivy-switch-buffer' but show only currently opened `dired' buffers."
+    (interactive)
+    (let ((ivy-use-virtual-buffers nil)    ; don't show virtual buffers
+	  (ivy-use-ignore-default 'always) ; don't fall back to regular buffer list if no dired buffers exist
+	  (ivy-ignore-buffers (append ivy-ignore-buffers '(my//only-dired-buffers))))
+      (ivy-switch-buffer)))
+
+  ;; hydra to remember some of the more useful bindings available for `dired' based on `evil-collection'
+  ;; since this is just a snippet of all available functions it could be adapted by removing unused and/or adding other commands
+  (defhydra my//hydra/dired (:hint nil)
+    "
+^Navigation^    ^Create^            ^Mark^                  ^Commands^        ^Open^                      ^Misc^
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+_j_: next line  ___: new file       _m_:  mark              _C_: copy         _RET_:   open               _i_: wdired
+_k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S-RET_: open other window  _=_: diff
+^ ^             ^ ^                 _U_:  unmark            _M_: chmod        _W_:     open default
+^ ^             ^ ^                 _*/_: mark directories  _R_: rename
+^ ^             ^ ^                 _*%_: mark files regex  _X_: shell cmd
+^ ^             ^ ^                 _*t_: toggle marks      _Z_: compress
+^ ^             ^ ^                 ^ ^                     _c_: compress to
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+[_q_]: quit
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+"
+    ;; navigation
+    ("j" dired-next-line)
+    ("k" dired-previous-line)
+    ;; create
+    ("_" my/dired-create-empty-file)
+    ("+" dired-create-directory)
+    ;; mark
+    ("m" dired-mark)
+    ("u" dired-unmark)
+    ("U" dired-unmark-all-marks)
+    ("*/" dired-mark-directories)
+    ("*%" dired-mark-files-regexp)
+    ("*t" dired-toggle-marks)
+    ;; commands
+    ("C" dired-do-copy)
+    ("D" dired-do-delete)
+    ("M" dired-do-chmod)
+    ("R" dired-do-rename)
+    ("X" dired-do-shell-command)
+    ("Z" dired-do-compress)
+    ("c" dired-do-compress-to)
+    ;; open
+    ("RET" dired-find-file)
+    ("S-RET" dired-find-file-other-window)
+    ("W" browse-url-of-dired-file)
+    ;; misc
+    ("i" dired-toggle-read-only)
+    ("=" dired-diff)
+    ("q" nil)))
+
+;; make the dired buffer editable for renaming files and folders
+(use-package wdired
+  :ensure nil
+  :general
+  (my/major-mode-leader-key
+    :keymaps 'wdired-mode-map
+    "" '(:ignore t :which-key "Wdired")
+    "c" '(wdired-finish-edit :which-key "finish edit")
+    "k" '(wdired-abort-changes :which-key "cancel"))
+  :config
+  (evil-set-initial-state 'wdired-mode 'normal)
+  ;; refresh the buffer after aborting to ensure that the icons are displayed correctly
+  (advice-add 'wdired-abort-changes :after (lambda () (revert-buffer))))
+
+;; show icons for files and directories
+(use-package all-the-icons-dired
+  :hook (dired-mode . all-the-icons-dired-mode))
+
+;; multi stage copy/pasting of files
+(use-package dired-ranger
+  :general
+  (my/major-mode-leader-key
+    :keymaps '(dired-mode-map dired-sidebar-mode-map)
+    :infix "r"
+    "" '(:ignore t :which-key "Ranger")
+    "y" '(dired-ranger-copy :which-key "copy")
+    "Y" '(my/dired-ranger-copy-add :which-key "add to copy")
+    "m" '(dired-ranger-move :which-key "move")
+    "p" '(my/dired-ranger-paste :which-key "paste"))
+
+  (general-define-key
+   :keymaps '(dired-mode-map dired-sidebar-mode-map)
+   :states 'normal
+   :prefix "C-r"
+   "" '(:ignore t :which-key "Dired-Ranger")
+   "y" '(dired-ranger-copy :which-key "copy")
+   "Y" '(my/dired-ranger-copy-add :which-key "add to copy")
+   "m" '(dired-ranger-move :which-key "move")
+   "p" '(my/dired-ranger-paste :which-key "paste"))
+
+  :config
+  (defun my/dired-ranger-copy-add ()
+    "Call `dired-ranger-copy' with raw prefix arg to add the selected files to the last copy ring entry."
+    (interactive)
+    (dired-ranger-copy t))
+
+  (defun my/dired-ranger-paste ()
+    "Call `dired-ranger-paste' with raw prefix arg to prevent the clipboard to be cleared."
+    (interactive)
+    (dired-ranger-paste t)))
+
+;; filtering of files in dired buffers
+(use-package dired-narrow
+  :general
+  (general-define-key
+    :keymaps 'dired-mode-map
+    :states 'normal
+    "/" 'dired-narrow))
+
+;; render directory subtree inside dired buffer
+(use-package dired-subtree
+  :custom
+  (dired-subtree-use-backgrounds nil)
+  (dired-subtree-line-prefix "->")
+  :general
+  (general-define-key
+    :keymaps 'dired-mode-map
+    :states 'normal
+    "TAB" 'my/dired-subtree-toggle)
+  :config
+  (defun my/dired-subtree-toggle ()
+    "Refresh buffer after toggling the subtree to ensure the icons are loaded correctly."
+    (interactive)
+    (dired-subtree-toggle)
+    (revert-buffer)))
+
+;; neotree like sidebar using dired
+(use-package dired-sidebar
+  :hook
+  ;; make all sidebar windows resizeable and do not wrap long lines
+  (dired-sidebar-mode . (lambda ()
+			  ;; both variables are buffer-local by default
+			  (setq truncate-lines t)        ; do not wrap lines into the next visible one
+			  (setq window-size-fixed nil))) ; make window resizeable
+  :custom
+  (dired-sidebar-refresh-on-projectile-switch nil) ; do not refresh the sidebar on project switch
+  (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with `balance-windows')
+
+  :general
+  (my/leader-key
+    "r" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
+
+  :init
+  (defun my//sidebar-which-key-replacement (entry)
+    "Which key replacement function for the `dired-sidebar'."
+    (let ((key (car entry)))
+      (if (and
+	   (fboundp 'dired-sidebar-showing-sidebar-p)
+	   (dired-sidebar-showing-sidebar-p))
+	`(,key . "sidebar close")
+	`(,key . "sidebar open"))))
+
+  :config
+  ;; set custom `which-key' description for `dired-sidebar-mode'
+  ;; the actual keybindings are inherited from `dired-mode-map'
+  (my/major-mode-leader-key
+    :keymaps 'dired-sidebar-mode-map
+    "" '(:ignore t :which-key "Dired Sidebar"))
+
+  ;; explicitly set `wdired' description for `which-key'
+  ;; needed to correctly work with the "dired-sidebar + wdired" hack
+  (my/major-mode-leader-key
+    :keymaps 'wdired-mode-map
+    :major-modes 'dired-sidebar-mode
+    "" '(:ignore t :which-key "Wdired")
+    "c" '(wdired-finish-edit :which-key "finish edit")
+    "k" '(wdired-abort-changes :which-key "cancel"))
+
+  ;; do not resize the sidebar window after toggling
+  (add-to-list 'window-size-change-functions
+                  (lambda (_)
+                    (let ((sidebar-window (dired-sidebar-showing-sidebar-p)))
+                      (unless (null sidebar-window)
+                        (setq dired-sidebar-width (window-width sidebar-window))))))
+
+  ;; make sure that derived dired modes return the correct directory
+  ;; (e.g. `dired-do-rename' in sidebar buffer will now prefill the correct path)
+  (defun my//dired-dwim-target-directory-advice (orig-fn)
+    (ignore orig-fn) ; avoid compiler warnings
+    (if (derived-mode-p 'dired-mode)
+      (dired-current-directory)
+      (orig-fn)))
+  (advice-add 'dired-dwim-target-directory :around 'my//dired-dwim-target-directory-advice)
+
+  ;; remap sidebar specific functions
+  (my/normal-state-keys
+    :keymaps 'dired-sidebar-mode-map
+    [remap dired-up-directory] 'dired-sidebar-up-directory
+    [remap quit-window] 'dired-sidebar-toggle-sidebar)
+
+  ;; map sidebar window to window number zero
+  (with-eval-after-load 'winum
+    (defun winum-assign-0-to-sidebar ()
+      "Always assign any 'dired-sidebar' window to winum number zero."
+      (when (eq major-mode 'dired-sidebar-mode) 0))
+    (add-to-list 'winum-assign-functions #'winum-assign-0-to-sidebar)))
+
 ;;;* miscellaneous
 
 ;; a collection of packages which do not fit within another more specific category
@@ -2072,206 +2365,6 @@ _N_: previous error _c_: correct word
   (general-define-key
    :keymaps 'java-mode-map
    [remap c-indent-line-or-region] 'company-indent-or-complete-common))
-
-;;;* dired
-
-;; [DIR]ectory [ED]itor for emacs
-(use-package dired
-  :ensure nil
-  :hook (dired-mode . auto-revert-mode) ; automatically revert buffer on file changes
-  :custom
-  ;; chose other open dired windows as default target for copy and move operations
-  (dired-dwim-target t)
-  :general
-  (my/leader-key
-    :infix my/infix/dired
-    "d" '(dired :which-key "dired")
-    "K" '(my/kill-all-dired-buffers :which-key "kill all dired buffers")
-    "b" '(my/ivy-switch-to-dired-buffer :which-key "switch to dired buffer"))
-  (my/normal-state-keys
-    :keymaps 'dired-mode-map
-    "_" 'my/dired-create-empty-file)
-  :config
-  ;; remap the default `dired-do-copy', `dired-do-delete', `dired-do-rename' and `dired-create-directory' functions to our own implementations
-  ;; these revert the buffer afterwards to ensure that the dired buffer content is always up to date
-  (defun my/dired-do-copy ()
-    "Replacement function for `dired-do-copy' which does revert the buffer afterwards."
-    (interactive)
-    (dired-do-copy)
-    (revert-buffer))
-
-  (defun my/dired-do-delete ()
-    "Replacement function for `dired-do-delete' which does revert the buffer afterwards."
-    (interactive)
-    (dired-do-delete)
-    (revert-buffer))
-
-  (defun my/dired-create-directory ()
-    "Replacement function for `dired-create-directory' which does revert the buffer afterwards."
-    (interactive)
-    (call-interactively 'dired-create-directory)
-    (revert-buffer))
-
-  (defun my/dired-do-rename ()
-    "Replacement function for `dired-do-rename' which does revert the buffer afterwards."
-    (interactive)
-    (call-interactively 'dired-do-rename)
-    (revert-buffer))
-
-  (my/normal-state-keys
-    :keymaps 'dired-mode-map
-    [remap dired-do-copy] 'my/dired-do-copy
-    [remap dired-do-delete] 'my/dired-do-delete
-    [remap dired-do-rename] 'my/dired-do-rename
-    [remap dired-create-directory] 'my/dired-create-directory)
-
-  ;; some utility functions for dired
-  (defun my/kill-all-dired-buffers ()
-    "Kill all currently opened 'dired' buffers."
-    (interactive)
-    (let ((dired-buffers (-filter (-compose (-partial 'eq 'dired-mode)
-					    (-partial 'buffer-local-value 'major-mode)) (buffer-list))))
-      (when (yes-or-no-p (concat "Do you really want to kill all " (number-to-string (length dired-buffers)) " 'dired' buffers?"))
-	(mapc 'kill-buffer dired-buffers))))
-
-  (defun my/dired-create-empty-file ()
-    "Create an empty file within a dired buffer. This function respects the current (subtree) directory."
-    (interactive)
-    (when (derived-mode-p 'dired-mode)
-      (let ((default-directory (dired-current-directory)))
-	(call-interactively 'dired-create-empty-file)
-	(revert-buffer))))
-
-  (defun my//only-dired-buffers (buffer)
-    "Filter function to ignore all 'non-dired' buffers."
-    (when (get-buffer buffer)
-      (with-current-buffer buffer
-	(not (eq major-mode 'dired-mode)))))
-
-  (defun my/ivy-switch-to-dired-buffer ()
-    "Call `ivy-switch-buffer' but show only currently opened dired buffers."
-    (interactive)
-    (let ((ivy-use-virtual-buffers nil)    ; don't show virtual buffers
-	  (ivy-use-ignore-default 'always) ; don't fall back to regular buffer list if no dired buffers exist
-	  (ivy-ignore-buffers (append ivy-ignore-buffers '(my//only-dired-buffers))))
-      (ivy-switch-buffer))))
-
-(use-package wdired
-  :ensure nil
-  :general
-  (my/major-mode-leader-key
-    :keymaps 'wdired-mode-map
-    "" '(:ignore t :which-key "Wdired")
-    "c" '(wdired-finish-edit :which-key "finish edit")
-    "k" '(wdired-abort-changes :which-key "cancel"))
-  :config
-  (evil-set-initial-state 'wdired-mode 'normal)
-  ;; refresh the buffer after aborting to ensure that the icons are displayed correctly
-  (advice-add 'wdired-abort-changes :after (lambda () (revert-buffer))))
-
-;; show icons for files and directories
-(use-package all-the-icons-dired
-  :after dired all-the-icons
-  :hook (dired-mode . all-the-icons-dired-mode))
-
-;; multi stage copy/pasting of files
-(use-package dired-ranger
-  :after dired
-  :general
-  (my/normal-state-keys
-   :keymaps 'dired-mode-map
-   :prefix "C-r"
-   "" '(:ignore t :which-key "Dired-Ranger")
-   "y" '(dired-ranger-copy :which-key "copy")
-   "Y" '(my/dired-ranger-copy-add :which-key "add to copy")
-   "m" '(dired-ranger-move :which-key "move")
-   "p" '(my/dired-ranger-paste :which-key "paste"))
-  :config
-  (defun my/dired-ranger-copy-add ()
-    "Call `dired-ranger-copy' with prefix arg to add the selected files to the last copy ring entry."
-    (interactive)
-    (dired-ranger-copy '(4)))
-
-  (defun my/dired-ranger-paste ()
-    "Call `dired-ranger-paste' with prefix arg to prevent the clipboard to be cleared."
-    (interactive)
-    (dired-ranger-paste '(4))))
-
-;; filtering of files in dired buffers
-(use-package dired-narrow
-  :after dired
-  :general
-  (my/normal-state-keys
-    :keymaps 'dired-mode-map
-    "/" 'dired-narrow))
-
-;; render directory subtree inside dired buffer
-(use-package dired-subtree
-  :after dired
-  :custom
-  (dired-subtree-use-backgrounds nil)
-  (dired-subtree-line-prefix "->")
-  :config
-  (defun my/dired-subtree-toggle ()
-    "Refresh buffer after toggeling the subtree to ensure the icons are loaded correctly."
-    (interactive)
-    (dired-subtree-toggle)
-    (revert-buffer))
-
-  (my/normal-state-keys
-    :keymaps 'dired-mode-map
-    "TAB" 'my/dired-subtree-toggle))
-
-;; neotree like sidebar using dired
-(use-package dired-sidebar
-  :after dired dired-subtree
-  :hook
-  ;; make all sidebar windows resizeable
-  (dired-sidebar-mode . (lambda () (setq-local window-size-fixed nil)))
-  :custom
-  (dired-sidebar-refresh-on-projectile-switch nil) ; do not refresh the sidebar on project switch
-  (dired-sidebar-toggle-hidden-commands nil)       ; don't hide sidebar during certain commands (caused problems with `balance-windows')
-  :general
-  (my/leader-key
-    "r" '(dired-sidebar-toggle-sidebar :which-key my//sidebar-which-key-replacement))
-  :init
-  (defun my//sidebar-which-key-replacement (entry)
-    "Which key replacement function for the 'dired-sidebar'."
-    (let ((key (car entry)))
-      (if (and
-	   (fboundp 'dired-sidebar-showing-sidebar-p)
-	   (dired-sidebar-showing-sidebar-p))
-	`(,key . "sidebar close")
-	`(,key . "sidebar open"))))
-  :config
-  ;; do not resize the sidebar window after toggeling
-  (add-to-list 'window-size-change-functions
-                  (lambda (_)
-                    (let ((sidebar-window (dired-sidebar-showing-sidebar-p)))
-                      (unless (null sidebar-window)
-                        (setq dired-sidebar-width (window-width sidebar-window))))))
-
-  ;; make sure that derived dired modes return the correct directory
-  ;; (e.g. `dired-do-rename' in sidebar buffer will now prefill the correct path)
-  (defun my//dired-dwim-target-directory-advice (orig-fn)
-    (ignore orig-fn) ; avoid compiler warnings
-    (if (derived-mode-p 'dired-mode)
-      (dired-current-directory)
-      (orig-fn)))
-  (advice-add 'dired-dwim-target-directory :around 'my//dired-dwim-target-directory-advice)
-
-  ;; remap sidebar specific functions
-  (my/normal-state-keys
-    :keymaps 'dired-sidebar-mode-map
-    [remap dired-up-directory] 'dired-sidebar-up-directory
-    [remap quit-window] 'dired-sidebar-toggle-sidebar)
-
-  ;; map sidebar window wo window number zero
-  (with-eval-after-load 'winum
-    (defun winum-assign-0-to-sidebar ()
-      "Always assign any 'dired-sidebar' window to winum number zero."
-      (when (eq major-mode 'dired-sidebar-mode) 0))
-    (add-to-list 'winum-assign-functions #'winum-assign-0-to-sidebar)))
 
 ;;;* move around
 
