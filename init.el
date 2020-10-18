@@ -358,6 +358,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (general-create-definer my/major-mode-leader-key
     :states '(normal visual motion emacs insert)
     :keymaps 'override
+    :major-modes t
     :prefix "SPC m"
     :non-normal-prefix "C-SPC m")
 
@@ -1716,7 +1717,6 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
 
   (my/major-mode-leader-key
     :keymaps 'package-menu-mode-map
-    :major-modes t
     "" '(:ignore t :which-key "Package Menu")
     "f" '(package-menu-filter-by-name :which-key "filter by name")
     "c" '(package-menu-clear-filter :which-key "clear filters")))
@@ -2809,7 +2809,6 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
     `(my/major-mode-leader-key
        :keymaps ,keymap
        "" '(:ignore t :which-key ,name)
-       :major-modes t
        "a" '(lsp-execute-code-action :which-key "code action")
        "h" '(:ignore t :which-key "Help/Docs")
        "hh" '(lsp-ui-doc-glance :which-key "glance")
@@ -2988,7 +2987,6 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
 
   (my/major-mode-leader-key
     :keymaps 'json-mode-map
-    :major-modes t
     "" '(:ignore t :which-key "Json")
     "v" '(my/json/schema-validation :which-key "schema validation")))
 
@@ -3011,7 +3009,6 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
   :general
   (my/major-mode-leader-key
     :keymaps 'web-mode-map
-    :major-modes t
     "" '(:ignore t :which-key "Web")
     "TAB" '(web-mode-fold-or-unfold :which-key "fold/unfold")
     "e" '(:ignore t :which-key "Elements")
@@ -3042,7 +3039,6 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
   :general
   (my/major-mode-leader-key
     :keymaps 'markdown-mode-map
-    :major-modes t
     "" '(:ignore t :which-key "Markdown")
     "i" '(:ignore t :which-key "Insert")
     "il" '(markdown-insert-link :which-key "link")
@@ -3109,7 +3105,6 @@ Movement      ^^^^^Rows^            ^Columns^
   :general
   (my/major-mode-leader-key
     :keymaps 'markdown-mode-map
-    :major-modes 'markdown-mode
     "p" '(markdown-preview-mode :which-key my//markdown-preview-mode-which-key-replacement)
     "P" '(:ignore t :which-key "Preview")
     "Po" '(markdown-preview-open-browser :which-key "open preview in browser")
@@ -3306,7 +3301,6 @@ With a given prefix ARG one can force the reload of the saved task list."
 
   (my/major-mode-leader-key
     :keymaps 'cider-repl-mode-map
-    :major-modes t
     "" '(:ignore t :which-key "CLJ Repl")
     "s" '(cider-repl-handle-shortcut :which-key "shortcuts")
     "q" '(cider-quit :which-key "quit")
@@ -3389,7 +3383,6 @@ With a given prefix ARG one can force the reload of the saved task list."
   :general
   (my/major-mode-leader-key
     :keymaps 'dart-mode-map
-    :major-modes t
     "R" '(flutter-run-or-hot-reload :which-key "flutter start/reload")))
 
 ;;;* outline
