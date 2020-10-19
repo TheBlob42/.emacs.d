@@ -1543,7 +1543,8 @@ _l_: go right  _L_: move right  _D_: others   _r_: rename
   (defun my//ivy-rich-variable-value (candidate)
     "Display the value of the variable represented by CANDIDATE.
 The result will be truncated to a max of 20 characters."
-    (let* ((var-value (symbol-value (intern-soft candidate))) ; use `intern-soft' to avoid creation of a new variable
+    (let* ((var (intern-soft candidate))                                   ; use `intern-soft' to avoid creation of a new variable
+	   (var-value (if (boundp var) (symbol-value var) 'VOID_VARIABLE)) ; check if the variable is actually bound or void
 	   (var-value-string (prin1-to-string var-value)))
       (concat " " var-value-string)))
 
