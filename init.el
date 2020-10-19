@@ -1616,31 +1616,47 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
   ;; unbind SPC to make sure that our prefixes for `my/major-mode-leader-key' work correctly
   (general-unbind 'normal dired-mode-map "SPC")
 
+  ;; `revert-buffer' and `dired-revert' do not always keep the current window position
+  ;; to avoid uncontrollable changes of the current position we remap it to our own custom function
+  (defun my/dired-revert (&rest _)
+    "Wrapper around `dired-revert' but saves the current window position.
+This function is inspired from `dired-sidebar-revert' but adopted for the usage with a current dired buffer."
+    (interactive)
+    (when (not (derived-mode-p 'dired-mode))
+      (user-error "Not a 'dired' buffer"))
+    (let ((old-window-start (window-start)))
+      (dired-revert)
+      (set-window-start (selected-window) old-window-start)))
+
+  (general-define-key
+   :keymaps 'dired-mode-map
+   [remap revert-buffer] 'my/dired-revert)
+
   ;; remap the default `dired-do-copy', `dired-do-delete', `dired-do-rename' and `dired-create-directory' functions to our own implementations
   ;; these revert the buffer afterwards to ensure that the dired buffer content is always up to date and the icons are correctly displayed
   (defun my/dired-do-copy ()
     "Replacement function for `dired-do-copy' which does revert the buffer afterwards."
     (interactive)
     (dired-do-copy)
-    (revert-buffer))
+    (my/dired-revert))
 
   (defun my/dired-do-delete ()
     "Replacement function for `dired-do-delete' which does revert the buffer afterwards."
     (interactive)
     (dired-do-delete)
-    (revert-buffer))
+    (my/dired-revert))
 
   (defun my/dired-create-directory ()
     "Replacement function for `dired-create-directory' which does revert the buffer afterwards."
     (interactive)
     (call-interactively 'dired-create-directory)
-    (revert-buffer))
+    (my/dired-revert))
 
   (defun my/dired-do-rename ()
     "Replacement function for `dired-do-rename' which does revert the buffer afterwards."
     (interactive)
     (call-interactively 'dired-do-rename)
-    (revert-buffer))
+    (my/dired-revert))
 
   (my/normal-state-keys
     :keymaps 'dired-mode-map
@@ -1807,7 +1823,7 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     "Refresh buffer after `dired-subtree-toggle' to ensure the icons are loaded correctly."
     (interactive)
     (dired-subtree-toggle)
-    (revert-buffer))
+    (my/dired-revert))
 
   ;; `evil-collection' will remap subtree bindings after the package was loaded
   ;; make sure that the subtree custom functions are being used instead
