@@ -2510,8 +2510,8 @@ This works by aborting the currently active completion via `company-abort' and c
   :general
   (my/leader-key
     :infix my/infix/git
-    "s" '(magit-status :which-key "magit status")
-    "b" '(magit-blame :which-key "magit blame"))
+    "s" '(magit-status :which-key "status")
+    "b" '(magit-blame :which-key "blame"))
 
   ;; keybindings for the commit message editor
   (my/major-mode-leader-key
@@ -2520,18 +2520,20 @@ This works by aborting the currently active completion via `company-abort' and c
     "" '(:ignore t :which-key "Editor")
     "c" '(with-editor-finish :which-key "editor finish")
     "k" '(with-editor-cancel :which-key "editor cancel"))
+
   :custom
-  ;; this makes magit ask us wether we want to create a PR after we pushed a new branch to stash
+  ;; this makes magit ask us whether we want to create a PR after we pushed a new branch to stash/bitbucket
   ;; if the pull request creation is confirmed it will open the corresponding webpage in the browser
   (magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request)
+
   :config
-  ;; NOTE this is exclusively working with stash, for other hosts the regex would probably need some adaptions
-  (defvar my--magit-process-create-pull-request-regexp
+  ;; NOTE this is exclusively working with stash/bitbucket, for other hosts the regex would probably need some adaptions
+  (defconst my--magit-process-create-bitbucket-pull-request-regexp
     "remote: Create pull request for.*\nremote: +\\(?1:[^ ]+\\)[^\n]*")
-  
+
   (defun my//magit-process-ask-create-bitbucket-pull-request (_ string)
-    "Check if the STRING match the pull request regex and browse to this url if desired."
-    (when (string-match my--magit-process-create-pull-request-regexp string)
+    "Check if the STRING match the pull request regex and browse to this URL if desired."
+    (when (string-match my--magit-process-create-bitbucket-pull-request-regexp string)
       (let ((url (match-string 1 string))
             (inhibit-message t))
 	(if (y-or-n-p "Create PR? ")
@@ -2539,7 +2541,29 @@ This works by aborting the currently active completion via `company-abort' and c
 
 ;; sets up evil keybindings for magit
 (use-package evil-magit
-  :after magit)
+  :after magit
+  :config
+  ;;
+  ;; keybindings if we just want to switch to `text-mode' (C-t by default)
+  ;;
+
+  (defun my//evil-magit-text-mode-wk-replacement (entry)
+    "Which key replacement function for `evil-magit-toggle-text-mode' which checks if the mode is currently active."
+    (let ((key (car entry)))
+      (if evil-magit-toggle-text-minor-mode
+	`(,key . "[x] text mode")
+	`(,key . "[ ] text mode"))))
+
+  (my/major-mode-leader-key
+    :keymaps 'magit-status-mode-map
+    "" '(:ignore t :which-key "Magit")
+    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement))
+
+  (my/major-mode-leader-key
+    :keymaps 'evil-magit-toggle-text-minor-mode-map
+    :major-modes 'text-mode
+    "" '(:ignore t :which-key "Magit")
+    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement)))
 
 ;; browse corresponding page on github/gitlab/bitbucket/etc. from an emacs buffer
 ;; this works with several buffer types like:
@@ -2550,13 +2574,14 @@ This works by aborting the currently active completion via `company-abort' and c
 ;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see `browse-at-remote-remote-type-domains')
 ;; if you have a specific git domain not in that list (e.g. github enterprise) the mapping will not work
 ;; to solve this issue you can set the repository type directly in your git config:
+;;
 ;; git config --add browseAtRemote.type "github" (for the current repository only)
 ;; git config --global --add browseAtRemote.type "stash" (for all your repositories)
 (use-package browse-at-remote
   :general
   (my/leader-key
     :infix my/infix/git
-    "o" '(browse-at-remote :which-key "browse at remote")))
+    "o" '(browse-at-remote :which-key "browse remote")))
 
 ;;;* terminal
 
