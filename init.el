@@ -1903,6 +1903,86 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
       (when (eq major-mode 'dired-sidebar-mode) 0))
     (add-to-list 'winum-assign-functions #'winum-assign-0-to-sidebar)))
 
+;;;* git
+
+;; use git with ease from within emacs
+(use-package magit
+  :general
+  (my/leader-key
+    :infix my/infix/git
+    "s" '(magit-status :which-key "status")
+    "b" '(magit-blame :which-key "blame"))
+
+  ;; keybindings for the commit message editor
+  (my/major-mode-leader-key
+    :keymaps 'with-editor-mode-map
+    :major-modes 'text-mode
+    "" '(:ignore t :which-key "Editor")
+    "c" '(with-editor-finish :which-key "editor finish")
+    "k" '(with-editor-cancel :which-key "editor cancel"))
+
+  :custom
+  ;; this makes magit ask us whether we want to create a PR after we pushed a new branch to stash/bitbucket
+  ;; if the pull request creation is confirmed it will open the corresponding webpage in the browser
+  (magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request)
+
+  :config
+  ;; NOTE this is exclusively working with stash/bitbucket, for other hosts the regex would probably need some adaptions
+  (defconst my--magit-process-create-bitbucket-pull-request-regexp
+    "remote: Create pull request for.*\nremote: +\\(?1:[^ ]+\\)[^\n]*")
+
+  (defun my//magit-process-ask-create-bitbucket-pull-request (_ string)
+    "Check if the STRING match the pull request regex and browse to this URL if desired."
+    (when (string-match my--magit-process-create-bitbucket-pull-request-regexp string)
+      (let ((url (match-string 1 string))
+            (inhibit-message t))
+	(if (y-or-n-p "Create PR? ")
+            (browse-url (url-encode-url url)))))))
+
+;; sets up evil keybindings for magit
+(use-package evil-magit
+  :after magit
+  :config
+  ;;
+  ;; keybindings if we just want to switch to `text-mode' (C-t by default)
+  ;;
+
+  (defun my//evil-magit-text-mode-wk-replacement (entry)
+    "Which key replacement function for `evil-magit-toggle-text-mode' which checks if the mode is currently active."
+    (let ((key (car entry)))
+      (if evil-magit-toggle-text-minor-mode
+	`(,key . "[x] text mode")
+	`(,key . "[ ] text mode"))))
+
+  (my/major-mode-leader-key
+    :keymaps 'magit-status-mode-map
+    "" '(:ignore t :which-key "Magit")
+    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement))
+
+  (my/major-mode-leader-key
+    :keymaps 'evil-magit-toggle-text-minor-mode-map
+    :major-modes 'text-mode
+    "" '(:ignore t :which-key "Magit")
+    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement)))
+
+;; browse corresponding page on github/gitlab/bitbucket/etc. from an emacs buffer
+;; this works with several buffer types like:
+;; - file buffer
+;; - dired
+;; - magit (representing code)
+
+;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see `browse-at-remote-remote-type-domains')
+;; if you have a specific git domain not in that list (e.g. github enterprise) the mapping will not work
+;; to solve this issue you can set the repository type directly in your git config:
+;;
+;; git config --add browseAtRemote.type "github" (for the current repository only)
+;; git config --global --add browseAtRemote.type "stash" (for all your repositories)
+(use-package browse-at-remote
+  :general
+  (my/leader-key
+    :infix my/infix/git
+    "o" '(browse-at-remote :which-key "browse remote")))
+
 ;;;* miscellaneous
 
 ;; a collection of packages which do not fit within another more specific category
@@ -2502,86 +2582,6 @@ This works by aborting the currently active completion via `company-abort' and c
 ;; collection of java specific snippets
 (use-package java-snippets
   :after yasnippet)
-
-;;;* git
-
-;; use git with ease from within emacs
-(use-package magit
-  :general
-  (my/leader-key
-    :infix my/infix/git
-    "s" '(magit-status :which-key "status")
-    "b" '(magit-blame :which-key "blame"))
-
-  ;; keybindings for the commit message editor
-  (my/major-mode-leader-key
-    :keymaps 'with-editor-mode-map
-    :major-modes 'text-mode
-    "" '(:ignore t :which-key "Editor")
-    "c" '(with-editor-finish :which-key "editor finish")
-    "k" '(with-editor-cancel :which-key "editor cancel"))
-
-  :custom
-  ;; this makes magit ask us whether we want to create a PR after we pushed a new branch to stash/bitbucket
-  ;; if the pull request creation is confirmed it will open the corresponding webpage in the browser
-  (magit-process-prompt-functions #'my//magit-process-ask-create-bitbucket-pull-request)
-
-  :config
-  ;; NOTE this is exclusively working with stash/bitbucket, for other hosts the regex would probably need some adaptions
-  (defconst my--magit-process-create-bitbucket-pull-request-regexp
-    "remote: Create pull request for.*\nremote: +\\(?1:[^ ]+\\)[^\n]*")
-
-  (defun my//magit-process-ask-create-bitbucket-pull-request (_ string)
-    "Check if the STRING match the pull request regex and browse to this URL if desired."
-    (when (string-match my--magit-process-create-bitbucket-pull-request-regexp string)
-      (let ((url (match-string 1 string))
-            (inhibit-message t))
-	(if (y-or-n-p "Create PR? ")
-            (browse-url (url-encode-url url)))))))
-
-;; sets up evil keybindings for magit
-(use-package evil-magit
-  :after magit
-  :config
-  ;;
-  ;; keybindings if we just want to switch to `text-mode' (C-t by default)
-  ;;
-
-  (defun my//evil-magit-text-mode-wk-replacement (entry)
-    "Which key replacement function for `evil-magit-toggle-text-mode' which checks if the mode is currently active."
-    (let ((key (car entry)))
-      (if evil-magit-toggle-text-minor-mode
-	`(,key . "[x] text mode")
-	`(,key . "[ ] text mode"))))
-
-  (my/major-mode-leader-key
-    :keymaps 'magit-status-mode-map
-    "" '(:ignore t :which-key "Magit")
-    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement))
-
-  (my/major-mode-leader-key
-    :keymaps 'evil-magit-toggle-text-minor-mode-map
-    :major-modes 'text-mode
-    "" '(:ignore t :which-key "Magit")
-    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement)))
-
-;; browse corresponding page on github/gitlab/bitbucket/etc. from an emacs buffer
-;; this works with several buffer types like:
-;; - file buffer
-;; - dired
-;; - magit (representing code)
-
-;; the package can work with the most popular remote types (e.g. github, gitlab, etc.) out of the box (see `browse-at-remote-remote-type-domains')
-;; if you have a specific git domain not in that list (e.g. github enterprise) the mapping will not work
-;; to solve this issue you can set the repository type directly in your git config:
-;;
-;; git config --add browseAtRemote.type "github" (for the current repository only)
-;; git config --global --add browseAtRemote.type "stash" (for all your repositories)
-(use-package browse-at-remote
-  :general
-  (my/leader-key
-    :infix my/infix/git
-    "o" '(browse-at-remote :which-key "browse remote")))
 
 ;;;* terminal
 
