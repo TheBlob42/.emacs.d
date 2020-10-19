@@ -906,9 +906,9 @@ It does so without changing the current state and point position."
     "er" '(my/rename-current-file-and-buffer :which-key "rename")
     "ed" '(my/delete-current-file-and-buffer :which-key "delete"))
 
-   (my/leader-key
-     :infix my/infix/buffer
-     "r" '(my/revert-buffer :which-key "revert"))
+  (my/leader-key
+    :infix my/infix/buffer
+    "r" '(my/revert-buffer :which-key "revert"))
 
   (my/leader-key
     :infix my/infix/insert
