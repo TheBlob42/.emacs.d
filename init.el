@@ -1804,10 +1804,17 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     "TAB" 'my/dired-subtree-toggle)
   :config
   (defun my/dired-subtree-toggle ()
-    "Refresh buffer after toggling the subtree to ensure the icons are loaded correctly."
+    "Refresh buffer after `dired-subtree-toggle' to ensure the icons are loaded correctly."
     (interactive)
     (dired-subtree-toggle)
-    (revert-buffer)))
+    (revert-buffer))
+
+  ;; `evil-collection' will remap subtree bindings after the package was loaded
+  ;; make sure that the subtree custom functions are being used instead
+  (general-define-key
+   :keymaps 'dired-mode-map
+   :states 'normal
+   [remap dired-subtree-toggle] 'my/dired-subtree-toggle))
 
 ;; neotree like sidebar using dired
 (use-package dired-sidebar
