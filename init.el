@@ -2206,9 +2206,11 @@ _N_: previous
 ;; edit grep buffer and apply those changes to the corresponding file buffer
 ;; e.g. very useful in combination with `ivy-occur'
 (use-package wgrep
-  :general
+  :defer t
+  :config
   (my/major-mode-leader-key
     :keymaps 'wgrep-mode-map
+    :major-modes '(nil)
     "c" '(wgrep-finish-edit :which-key "(wgrep) finish edit")
     "k" '(wgrep-abort-changes :which-key "(wgrep) cancel edit")))
 
