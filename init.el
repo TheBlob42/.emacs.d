@@ -1955,7 +1955,7 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
 	`(,key . "[ ] text mode"))))
 
   (my/major-mode-leader-key
-    :keymaps 'magit-status-mode-map
+    :keymaps '(magit-status-mode-map magit-revision-mode-map)
     "" '(:ignore t :which-key "Magit")
     "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement))
 
