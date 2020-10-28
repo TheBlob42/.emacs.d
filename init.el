@@ -2425,25 +2425,30 @@ _N_: previous error _c_: correct word
   (add-to-list 'projectile-project-root-files-bottom-up "BUILD")
   (my/leader-key
     :infix my/infix/projects
-    "d" '(projectile-kill-buffers :which-key "kill all project buffers"))
+    "K" '(projectile-kill-buffers :which-key "kill project"))
 
   (projectile-mode 1))
 
 ;; `counsel-projectile' provides further `ivy' integration for `projectile'
 ;; it also defines replacements for existing projectile commands as well as new commands
 (use-package counsel-projectile
-  :after (counsel projectile)
   :general
   (my/leader-key
     :infix my/infix/projects
     "p" '(counsel-projectile-switch-project :which-key "switch project")
-    "b" '(counsel-projectile-switch-to-buffer :which-key "switch to project buffer")
-    "f" '(counsel-projectile-find-file :which-key "find file in project")
+    "b" '(counsel-projectile-switch-to-buffer :which-key "switch project buffer")
+    "f" '(counsel-projectile-find-file :which-key "find project file")
     "s" '(counsel-projectile-ag :which-key "search in project"))
+
   :config
-  (general-define-key
-   :keymaps 'counsel-projectile-switch-to-buffer-map
-   "C-d" "C-c C-k") ; kill project buffers (similar as `ivy-switch-buffer-kill')
+  ;; open project root dired buffer from within counsel completion
+  (defun my//counsel-projectile-projectile-dired (_)
+    "Wrapper around `projectile-dired' so it can be used as an alternate action for `counsel-projectile'."
+    (projectile-dired))
+  (ivy-add-actions 'counsel-projectile
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
+  (ivy-add-actions 'counsel-projectile-find-file
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
 
   (counsel-projectile-mode))
 
