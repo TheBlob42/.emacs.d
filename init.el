@@ -852,7 +852,7 @@ It does so without changing the current state and point position."
    "C-n" 'evil-multiedit-next
    "C-p" 'evil-multiedit-prev))
 
-;; `evil-disable-mouse' is a local package an needs to be installed manually
+;; `evil-disable-mouse' is a local package and needs to be installed manually
 (when (not (package-installed-p 'evil-disable-mouse))
   (package-install-file (concat user-emacs-directory "repos/evil-disable-mouse/")))
 
@@ -1449,7 +1449,7 @@ _l_: go right  _L_: move right  _D_: others   _r_: rename
 	      (concat " " (read-string "PATTERN: "))))
 
   (transient-define-prefix my/counsel-ag-transient ()
-    "Search Options"
+    "Configure AG search parameters."
     ["Search Options"
      ("-f" "Follow symlinks" "--follow")
      (my--ag-file-search-regex)
@@ -2524,7 +2524,7 @@ _N_: previous error _c_: correct word
   :config
   (defhydra hydra-flycheck (:hint nil)
     "
-^Navigation^         ^Other^
+^Navigation^         ^Misc^
 ^^^^--------------------------------
 _n_: next error      _z_: center
 _N_: previous error  _L_: error list
