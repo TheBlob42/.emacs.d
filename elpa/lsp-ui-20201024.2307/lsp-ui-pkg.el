@@ -1,10 +1,10 @@
-(define-package "lsp-ui" "20201002.2002" "UI modules for lsp-mode"
+(define-package "lsp-ui" "20201024.2307" "UI modules for lsp-mode"
   '((emacs "26.1")
     (dash "2.14")
     (dash-functional "1.2.0")
     (lsp-mode "6.0")
     (markdown-mode "2.3"))
-  :commit "25552041f5af110c282fe8a2c714dec0f7a2320e" :keywords
+  :commit "b1693d610c4d2c44305eba2719e8d4097fdcdcb8" :keywords
   '("languages" "tools")
   :authors
   '(("Sebastien Chapuis <sebastien@chapu.is>, Fangrui Song" . "i@maskray.me"))
