@@ -1983,6 +1983,59 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     :infix my/infix/git
     "o" '(browse-at-remote :which-key "browse remote")))
 
+;;;* projects
+
+;; project management within emacs is usually done via the `projectile' package
+;; the concept of a project is simply a folder containing some special file(s)
+
+;; some project types are supported out of the box:
+;; - git
+;; - maven
+;; - mercurial
+;; - etc.
+;; you can also add an emtpy '.projectile' to a folder in order to mark it as a project
+
+;; `projectile' will then provide a nice set of features to operate on a project:
+;; - jump to a file in project
+;; - jump to a project buffer
+;; - switch between projects
+;; - etc.
+
+(use-package projectile
+  :defer 1
+  :config
+  ;; special configuration for Dart projects
+  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
+  (add-to-list 'projectile-project-root-files-bottom-up "BUILD")
+  (my/leader-key
+    :infix my/infix/projects
+    "K" '(projectile-kill-buffers :which-key "kill project"))
+
+  (projectile-mode 1))
+
+;; `counsel-projectile' provides further `ivy' integration for `projectile'
+;; it also defines replacements for existing projectile commands as well as new commands
+(use-package counsel-projectile
+  :general
+  (my/leader-key
+    :infix my/infix/projects
+    "p" '(counsel-projectile-switch-project :which-key "switch project")
+    "b" '(counsel-projectile-switch-to-buffer :which-key "switch project buffer")
+    "f" '(counsel-projectile-find-file :which-key "find project file")
+    "s" '(counsel-projectile-ag :which-key "search in project"))
+
+  :config
+  ;; open project root dired buffer from within counsel completion
+  (defun my//counsel-projectile-projectile-dired (_)
+    "Wrapper around `projectile-dired' so it can be used as an alternate action for `counsel-projectile'."
+    (projectile-dired))
+  (ivy-add-actions 'counsel-projectile
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
+  (ivy-add-actions 'counsel-projectile-find-file
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
+
+  (counsel-projectile-mode))
+
 ;;;* miscellaneous
 
 ;; a collection of packages which do not fit within another more specific category
@@ -2398,59 +2451,6 @@ _N_: previous error _c_: correct word
   (rainbow-delimiters-depth-8-face ((t (:foreground "medium violet red"
 					:weight semi-bold))))
   :hook ((prog-mode . rainbow-delimiters-mode)))
-
-;;;* projects
-
-;; project management within emacs is usually done via the `projectile' package
-;; the concept of a project is simply a folder containing some special file(s)
-
-;; some project types are supported out of the box:
-;; - git
-;; - maven
-;; - mercurial
-;; - etc.
-;; you can also add an emtpy '.projectile' to a folder in order to mark it as a project
-
-;; `projectile' will then provide a nice set of features to operate on a project:
-;; - jump to a file in project
-;; - jump to a project buffer
-;; - switch between projects
-;; - etc.
-
-(use-package projectile
-  :defer 1
-  :config
-  ;; special configuration for Dart projects
-  (add-to-list 'projectile-project-root-files-bottom-up "pubspec.yaml")
-  (add-to-list 'projectile-project-root-files-bottom-up "BUILD")
-  (my/leader-key
-    :infix my/infix/projects
-    "K" '(projectile-kill-buffers :which-key "kill project"))
-
-  (projectile-mode 1))
-
-;; `counsel-projectile' provides further `ivy' integration for `projectile'
-;; it also defines replacements for existing projectile commands as well as new commands
-(use-package counsel-projectile
-  :general
-  (my/leader-key
-    :infix my/infix/projects
-    "p" '(counsel-projectile-switch-project :which-key "switch project")
-    "b" '(counsel-projectile-switch-to-buffer :which-key "switch project buffer")
-    "f" '(counsel-projectile-find-file :which-key "find project file")
-    "s" '(counsel-projectile-ag :which-key "search in project"))
-
-  :config
-  ;; open project root dired buffer from within counsel completion
-  (defun my//counsel-projectile-projectile-dired (_)
-    "Wrapper around `projectile-dired' so it can be used as an alternate action for `counsel-projectile'."
-    (projectile-dired))
-  (ivy-add-actions 'counsel-projectile
-		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
-  (ivy-add-actions 'counsel-projectile-find-file
-		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
-
-  (counsel-projectile-mode))
 
 ;;;* company
 
