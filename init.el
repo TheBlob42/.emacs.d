@@ -660,6 +660,13 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   ;; these two options are set as required by `evil-collection'
   (evil-want-integration t)       ; load 'evil-integration.el' (default)
   (evil-want-keybinding nil)      ; do NOT load 'evil-keybindings.el' as `evil-collection' is used instead
+
+  ;; use `undo-fu' as the "evil undo system" (since `undo-tree' is known for its errors)
+  ;; starting with emacs 28 there is also the already included `undo-redo' function which could be used instead
+  ;; to ensure backwards compatibility with versions prior to 28 use the `undo-fu' package for now
+  ;; for more information check the issue in the `evil' repository:
+  ;; - https://github.com/emacs-evil/evil/issues/1074
+  (evil-undo-system 'undo-fu)
   :config
   ;; setup the most generic minibuffer keybindings for `evil'
   (general-define-key
@@ -2147,16 +2154,6 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     :infix my/infix/toggle
     "w" '(whitespace-mode :which-key my//whitespace-wk-replacement)))
 
-;; TODO remove this dependency
-;; since evil is not dependend on `undo-tree' anymore (see https://github.com/emacs-evil/evil/issues/1074)
-;; we can remove it and either switch to `undo-fu' or to emacs 28 (which contains `undo-redo')
-(use-package undo-tree
-  :ensure nil
-  :general
-  (my/leader-key
-    :infix my/infix/buffer
-    "u" '(undo-tree-visualize :which-key "undo tree")))
-
 ;; menu for install/remove/upgrade packages
 (use-package package
   :ensure nil
@@ -2266,6 +2263,9 @@ _N_: previous
     :major-modes '(nil)
     "c" '(wgrep-finish-edit :which-key "(wgrep) finish edit")
     "k" '(wgrep-abort-changes :which-key "(wgrep) cancel edit")))
+
+;; simple, stable & linear undo/redo with emacs
+(use-package undo-fu)
 
 ;;;* spellchecker
 
