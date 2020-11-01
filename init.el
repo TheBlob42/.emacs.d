@@ -3198,11 +3198,11 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
     "ta" '(markdown-table-align :which-key "align")
     "te" '(hydra-markdown-table/body :which-key "[edit]"))
   :config
-  ;; overwrite 'markdown-outdent-or-delete' with the default backspace behavior
-  ;; otherwise evil-mc can't handle deletion with multiple cursors
-  (my/insert-state-keys
-    :keymaps 'markdown-mode-map
-    "<backspace>" 'backward-delete-char-untabify)
+  ;; cycle (tables) in normal state
+  (general-define-key
+   :keymaps 'markdown-mode-map
+   :states 'normal
+   "TAB" 'markdown-cycle)
 
   (defhydra hydra-markdown-table (:hint nil
 				  :pre (when (not (markdown-table-at-point-p))
