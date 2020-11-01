@@ -170,6 +170,20 @@ instead."
     (funcall (if bounds #'list #'buffer-substring-no-properties)
              (car b) (cdr b))))
 
+(defun cider-list-at-point (&optional bounds)
+  "Return the list (compound form) at point as a string, otherwise nil.
+If BOUNDS is non-nil, return a list of its starting and ending position
+instead."
+  (when-let* ((b (or (and (equal (char-after) ?\()
+                          (member (char-before) '(?\' ?\, ?\@))
+                          ;; hide stuff before ( to avoid quirks with '( etc.
+                          (save-restriction
+                            (narrow-to-region (point) (point-max))
+                            (bounds-of-thing-at-point 'list)))
+                     (bounds-of-thing-at-point 'list))))
+    (funcall (if bounds #'list #'buffer-substring-no-properties)
+             (car b) (cdr b))))
+
 (defun cider-last-sexp (&optional bounds)
   "Return the sexp preceding the point.
 If BOUNDS is non-nil, return a list of its starting and ending position
@@ -431,11 +445,15 @@ plugin or dependency with:
 (defconst cider-manual-url "https://docs.cider.mx/cider/%s"
   "The URL to CIDER's manual.")
 
+(defun cider-version-sans-patch ()
+  "Return the version sans that patch."
+  (string-join (seq-take (split-string cider-version "\\.") 2) "."))
+
 (defun cider--manual-version ()
   "Convert the version to a ReadTheDocs-friendly version."
   (if (string-match-p "-snapshot" cider-version)
       ""
-    (concat cider-version "/")))
+    (concat (cider-version-sans-patch) "/")))
 
 (defun cider-manual-url ()
   "The CIDER manual's url."

@@ -11,8 +11,8 @@
 ;;         Steve Purcell <steve@sanityinc.com>
 ;; Maintainer: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: http://www.github.com/clojure-emacs/cider
-;; Version: 0.26.0-snapshot
-;; Package-Requires: ((emacs "25") (clojure-mode "5.11") (parseedn "0.1") (pkg-info "0.4") (queue "0.2") (spinner "1.7") (seq "2.16") (sesman "0.3.2"))
+;; Version: 1.0.0-snapshot
+;; Package-Requires: ((emacs "25") (clojure-mode "5.12") (parseedn "0.2") (pkg-info "0.4") (queue "0.2") (spinner "1.7") (seq "2.16") (sesman "0.3.2"))
 ;; Keywords: languages, clojure, cider
 
 ;; This program is free software: you can redistribute it and/or modify
@@ -33,11 +33,12 @@
 ;;; Commentary:
 
 ;; Provides a Clojure interactive development environment for Emacs, built on
-;; top of nREPL.
+;; top of nREPL.  See https://docs.cider.mx for more details.
 
 ;;; Installation:
 
-;; Available as a package in melpa.org and stable.melpa.org
+;; CIDER is available as a package in melpa.org and stable.melpa.org.  First, make sure you've
+;; enabled one of the repositories in your Emacs config:
 
 ;; (add-to-list 'package-archives
 ;;              '("melpa" . "https://melpa.org/packages/"))
@@ -46,10 +47,14 @@
 ;;
 ;; (add-to-list 'package-archives
 ;;              '("melpa-stable" . "https://stable.melpa.org/packages/") t)
-;;
+
+;; Afterwards, installing CIDER is as easy as:
+
 ;; M-x package-install cider
 
 ;;; Usage:
+
+;; You can start CIDER with one of the following commands:
 
 ;; M-x cider-jack-in-clj
 ;; M-x cider-jack-in-cljs
@@ -87,12 +92,12 @@
 (require 'seq)
 (require 'sesman)
 
-(defconst cider-version "0.26.0-snapshot"
+(defconst cider-version "1.0.0-snapshot"
   "Fallback version used when it cannot be extracted automatically.
 Normally it won't be used, unless `pkg-info' fails to extract the
 version from the CIDER package or library.")
 
-(defconst cider-codename "Bergamo"
+(defconst cider-codename "Nesebar"
   "Codename used to denote stable releases.")
 
 (defcustom cider-lein-command
@@ -382,13 +387,13 @@ Throws an error if PROJECT-TYPE is unknown."
 ;; We inject the newest known version of nREPL just in case
 ;; your version of Boot or Leiningen is bundling an older one.
 (cider-add-to-alist 'cider-jack-in-dependencies
-                    "nrepl" "0.8.0-alpha3")
+                    "nrepl" "0.8.2")
 
 (defvar cider-jack-in-cljs-dependencies nil
   "List of dependencies where elements are lists of artifact name and version.
 Added to `cider-jack-in-dependencies' when doing `cider-jack-in-cljs'.")
 (put 'cider-jack-in-cljs-dependencies 'risky-local-variable t)
-(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.5.0")
+(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.5.1")
 
 (defvar cider-jack-in-dependencies-exclusions nil
   "List of exclusions for jack in dependencies.
@@ -404,7 +409,7 @@ Elements of the list are artifact name and list of exclusions to apply for the a
 (defconst cider-latest-clojure-version "1.10.1"
   "Latest supported version of Clojure.")
 
-(defconst cider-required-middleware-version "0.25.3-SNAPSHOT"
+(defconst cider-required-middleware-version "0.25.4"
   "The CIDER nREPL version that's known to work properly with CIDER.")
 
 (defcustom cider-jack-in-auto-inject-clojure nil
@@ -559,16 +564,16 @@ removed, LEIN-PLUGINS, and finally PARAMS."
 
 (defun cider-clojure-cli-jack-in-dependencies (global-opts params dependencies)
   "Create Clojure tools.deps jack-in dependencies.
-Does so by concatenating GLOBAL-OPTS, DEPENDENCIES finally PARAMS."
+Does so by concatenating DEPENDENCIES, GLOBAL-OPTS and PARAMS."
   (let ((dependencies (append dependencies cider-jack-in-lein-plugins)))
     (concat
-     global-opts
-     (unless (seq-empty-p global-opts) " ")
      "-Sdeps '{:deps {"
      (mapconcat #'identity
                 (seq-map (lambda (dep) (format "%s {:mvn/version \"%s\"}" (car dep) (cadr dep))) dependencies)
                 " ")
      "}}' "
+     global-opts
+     (unless (seq-empty-p global-opts) " ")
      params)))
 
 (defun cider-shadow-cljs-jack-in-dependencies (global-opts params dependencies)
@@ -688,6 +693,12 @@ Generally you should not disable this unless you run into some faulty check."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "adzerk.boot-cljs-repl")
     (user-error "The Boot ClojureScript REPL is not available.  Please check https://github.com/adzerk-oss/boot-cljs-repl/blob/master/README.md for details")))
+
+(defun cider-check-krell-requirements ()
+  "Check whether we can start a Krell ClojureScript REPL."
+  (cider-verify-piggieback-is-present)
+  (unless (cider-library-present-p "krell.repl")
+    (user-error "The Krell ClojureScript REPL is not available.  Please check https://github.com/vouch-opensource/krell for details")))
 
 (defun cider-check-shadow-cljs-requirements ()
   "Check whether we can start a shadow-cljs REPL."
@@ -815,8 +826,7 @@ The supplied string will be wrapped in a do form if needed."
     (figwheel-main cider-figwheel-main-init-form cider-check-figwheel-main-requirements)
     (figwheel-connected "(figwheel-sidecar.repl-api/cljs-repl)"
                         cider-check-figwheel-requirements)
-    (browser "(do (require 'cljs.repl.browser) (cider.piggieback/cljs-repl (cljs.repl.browser/repl-env)))"
-             cider-check-node-requirements)
+    (browser "(do (require 'cljs.repl.browser) (cider.piggieback/cljs-repl (cljs.repl.browser/repl-env)))")
     (node "(do (require 'cljs.repl.node) (cider.piggieback/cljs-repl (cljs.repl.node/repl-env)))"
           cider-check-node-requirements)
     (weasel "(do (require 'weasel.repl.websocket) (cider.piggieback/cljs-repl (weasel.repl.websocket/repl-env :ip \"127.0.0.1\" :port 9001)))"
@@ -825,6 +835,15 @@ The supplied string will be wrapped in a do form if needed."
           cider-check-boot-requirements)
     (shadow cider-shadow-cljs-init-form cider-check-shadow-cljs-requirements)
     (shadow-select cider-shadow-select-cljs-init-form cider-check-shadow-cljs-requirements)
+    (krell "(require '[clojure.edn :as edn]
+         '[clojure.java.io :as io]
+         '[cider.piggieback]
+         '[krell.api :as krell]
+         '[krell.repl])
+(def config (edn/read-string (slurp (io/file \"build.edn\"))))
+(krell/build config)
+(apply cider.piggieback/cljs-repl (krell.repl/repl-env) (mapcat identity config))"
+           cider-check-krell-requirements)
     (custom cider-custom-cljs-repl-init-form nil))
   "A list of supported ClojureScript REPLs.
 
@@ -867,6 +886,7 @@ you're working on."
                  (const :tag "Boot"     boot)
                  (const :tag "Shadow"   shadow)
                  (const :tag "Shadow w/o Server" shadow-select)
+                 (const :tag "Krell"    krell)
                  (const :tag "Custom"   custom))
   :group 'cider
   :safe #'symbolp
