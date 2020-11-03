@@ -2548,6 +2548,24 @@ _N_: previous
     "j" '(avy-goto-char-timer :which-key "goto char-seq")
     "l" '(avy-goto-line :which-key "goto line")))
 
+;; quickly open a shell buffer from anywhere
+(use-package shell-pop
+  :commands shell-pop
+  :hook (shell-pop-in-after . evil-insert-state)
+  :custom
+  (shell-pop-full-span t)
+  ;; set default shell type to "ansi-term"
+  (shell-pop-shell-type (quote ("ansi-term"
+				"*ansi-term*"
+				(lambda nil (ansi-term shell-pop-term-shell)))))
+  :general (my/leader-key "'" '(shell-pop :which-key "shell")))
+
+;; copy environment variables from your local shell to emacs
+(use-package exec-path-from-shell
+  :defer 3
+  :config
+  (exec-path-from-shell-initialize))
+
 ;;;* company
 
 ;; autocompletion framework for emacs
@@ -2618,22 +2636,8 @@ _N_: previous error  _L_: error list
     ("z" evil-scroll-line-to-center)
     ("q" nil :color blue)))
 
-;;;* terminal
 
-;; quickly open a shell buffer from anywhere
-(use-package shell-pop
-  :commands shell-pop
-  :hook (shell-pop-in-after . evil-insert-state)
-  :custom
-  (shell-pop-full-span t)
-  (shell-pop-shell-type (quote ("ansi-term" "*ansi-term*" (lambda nil (ansi-term shell-pop-term-shell)))))
-  :general (my/leader-key "'" '(shell-pop :which-key "shell")))
 
-;; copy environment variables from your local shell to emacs
-(use-package exec-path-from-shell
-  :defer 3
-  :config
-  (exec-path-from-shell-initialize))
 
 ;;;* org mode
 
