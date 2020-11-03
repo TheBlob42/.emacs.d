@@ -2085,6 +2085,62 @@ https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
       (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
         (cl-callf color-saturate-name (face-foreground face) 50)))))
 
+;;;** snippets
+
+;; YASnippet (Yet Another Snippet) is a template system for emacs
+;; it allows to type a abbreviation and automatically expand it into function templates
+
+;; basic package for snippet insertion
+(use-package yasnippet
+  :defer 1
+  :custom-face
+  ;; make yasnippet fields more standing out
+  (yas-field-highlight-face ((t (:background nil :inherit highlight))))
+  :config
+  (my/leader-key
+    :infix my/infix/insert
+    "s" '(yas-insert-snippet :which-key "snippet"))
+
+  (general-define-key
+   :states 'insert
+   "C-o" 'yas-expand
+   "C-S-o" 'company-yasnippet)
+
+  (general-define-key
+   :keymaps 'company-active-map
+   "C-S-o" 'my/toggle-between-company-and-yasnippet)
+
+  ;; TAB should only be used for indentation or completion
+  (general-unbind
+    :keymaps 'yas-minor-mode-map
+    "<tab>")
+
+  (defun my/toggle-between-company-and-yasnippet ()
+    "Switch between the currently used company backend and `company-yasnippet' (or vice versa).
+This works by aborting the currently active completion via `company-abort' and calling either `company-complete' or `company-yasnippet'."
+    (interactive)
+    (if (eq company-backend 'company-yasnippet)
+      (progn
+	(company-abort)
+	(company-complete))
+      (progn
+	(company-abort)
+	(condition-case nil (call-interactively 'company-yasnippet)
+	  ;; catch the error if no snippets are available
+	  (user-error (progn
+			(company-complete)
+			(message "No snippets found!")))))))
+
+  (yas-global-mode 1))
+
+;; collection of general useful snippets
+(use-package yasnippet-snippets
+  :after yasnippet)
+
+;; collection of java specific snippets
+(use-package java-snippets
+  :after yasnippet)
+
 ;;;* miscellaneous
 
 ;; a collection of packages which do not fit within another more specific category
@@ -2560,53 +2616,6 @@ _N_: previous error  _L_: error list
     ("L" flycheck-list-errors :exit t)
     ("z" evil-scroll-line-to-center)
     ("q" nil :color blue)))
-
-;;;* snippets
-
-;; YASnippet (Yet Another Snippet) is a template system for emacs
-;; it allows to type a abbreviation and automatically expand it into function templates
-
-;; basic package for snippet insertion
-(use-package yasnippet
-  :general
-  (my/leader-key
-    :infix my/infix/insert
-    "s" '(yas-insert-snippet :which-key "snippet"))
-  (my/insert-state-keys
-    "C-o" 'yas-expand)
-  (general-define-key
-   :keymaps 'company-active-map
-   "C-S-o" 'my/toggle-between-company-and-yasnippet)
-  :config
-  ;; this only works with yasnippet already loaded
-  ;; as it is actually a command of the 'company' package
-  (my/insert-state-keys
-    "C-S-o" 'company-yasnippet)
-
-  (defun my/toggle-between-company-and-yasnippet ()
-    "Switch between the currently used company backend and 'company-yasnippet' (possible in both directions).
-This works by aborting the currently active completion via `company-abort' and calling either `company-complete' or `company-yasnippet'."
-    (interactive)
-    (if (eq company-backend 'company-yasnippet)
-      (progn
-	(company-abort)
-	(company-complete))
-      (progn
-	(company-abort)
-	(condition-case nil (call-interactively 'company-yasnippet)
-	  ;; catch the error if no snippets are available
-	  (user-error (progn
-			(company-complete)
-			(message "No snippets found!")))))))
-  (yas-global-mode 1))
-
-;; collection of general useful snippets
-(use-package yasnippet-snippets
-  :after yasnippet)
-
-;; collection of java specific snippets
-(use-package java-snippets
-  :after yasnippet)
 
 ;;;* terminal
 
