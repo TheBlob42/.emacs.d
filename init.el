@@ -1967,7 +1967,9 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement))
 
   (my/major-mode-leader-key
-    :keymaps 'evil-magit-toggle-text-minor-mode-map
+    :keymaps '(magit-status-mode-map
+	       magit-revision-mode-map
+	       magit-stash-mode-map)
     :major-modes 'text-mode
     "" '(:ignore t :which-key "Magit")
     "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement)))
