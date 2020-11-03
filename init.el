@@ -2051,6 +2051,40 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
 
   (counsel-projectile-mode))
 
+;;;* editing
+
+;; everything related to (text) editing
+
+;;;** brackets
+
+;; highlighting matching parentheses
+(use-package paren
+  :ensure nil
+  :custom
+  (show-paren-style 'expression)
+  :custom-face
+  (show-paren-match-expression ((t (:weight ultra-bold :inherit warning))))
+  :config
+  (show-paren-mode))
+
+;; insert closing delimiter automatically
+(use-package elec-pair
+  :ensure nil
+  :hook ((prog-mode . electric-pair-local-mode)))
+
+;; mark nested parentheses with different colors
+(use-package rainbow-delimiters
+  :hook ((prog-mode . rainbow-delimiters-mode))
+  :init
+  (defun my//make-rainbow-delimiters-more-colorful ()
+    "Make the rainbow colors more saturated.
+
+This hack is based on the code from
+https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
+    (dolist (index (number-sequence 1 rainbow-delimiters-max-face-count) nil)
+      (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
+        (cl-callf color-saturate-name (face-foreground face) 50)))))
+
 ;;;* miscellaneous
 
 ;; a collection of packages which do not fit within another more specific category
@@ -2456,36 +2490,6 @@ _N_: previous error _c_: correct word
 
 (use-package flyspell-correct-ivy
   :after flyspell-correct)
-
-;;;* parentheses
-
-;; highlighting matching parentheses
-(use-package paren
-  :ensure nil
-  :custom
-  (show-paren-style 'expression)
-  :custom-face
-  (show-paren-match-expression ((t (:weight ultra-bold :inherit warning))))
-  :config
-  (show-paren-mode))
-
-;; insert closing delimiter automatically
-(use-package elec-pair
-  :ensure nil
-  :hook ((prog-mode . electric-pair-local-mode)))
-
-;; mark nested parentheses with different colors
-(use-package rainbow-delimiters
-  :hook ((prog-mode . rainbow-delimiters-mode))
-  :init
-  (defun my//make-rainbow-delimiters-more-colorful ()
-    "Make the rainbow colors more saturated.
-
-This hack is based on the code from
-https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
-    (dolist (index (number-sequence 1 rainbow-delimiters-max-face-count) nil)
-      (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
-        (cl-callf color-saturate-name (face-foreground face) 50)))))
 
 ;;;* company
 
