@@ -2631,15 +2631,9 @@ _N_: previous error  _L_: error list
 
 ;; copy environment variables from your local shell to emacs
 (use-package exec-path-from-shell
-  :defer t
-  :init
-  ;; only initialize in case it is needed
-  ;; also prevents double initialization
-  (defvar my--shell-env-variables-copied nil)
-  (defun my//copy-shell-env-variables ()
-    (when (not my--shell-env-variables-copied)
-      (exec-path-from-shell-initialize)
-      (setq my--shell-env-variables-copied t))))
+  :defer 3
+  :config
+  (exec-path-from-shell-initialize))
 
 ;;;* org mode
 
@@ -3103,9 +3097,8 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
     "Start 'lsp' but prevent the startup for derived js-modes where we don't need or want LSP."
     (let ((exceptions '(json-mode)))
       (unless (apply 'derived-mode-p exceptions)
-	;; we need to make sure that all env variables from our regular shell are present
-	;; this is especially needed to make the JS language server work with nvm
-	(my//copy-shell-env-variables)
+	;; check if `exec-path-from-shell' has run to ensure all env variables are present
+	;; this is especially important to make the JS language server work with 'nvm'
 	(lsp))))
 
   (my/lsp-keybindings
@@ -3128,7 +3121,6 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
   :commands json-mode
   :custom (json-reformat:indent-width 2)
   :config
-  (my//copy-shell-env-variables)
   ;; define the json schema validation cli command with placeholders within your config file 'my-config-file' as 'jsonschema-cmd'
   ;; -> jsonschema -i <json> <schema>
   ;; -> ajv validate -s <schema> -d <json>
@@ -3486,8 +3478,8 @@ Movement      ^^^^^Rows^            ^Columns^
    "=r" nil
    "wc" nil)
   :config
-  (my//copy-shell-env-variables) ; we need node/npm set up for debugging
-  (dap-dart-setup))              ; setup dap debugger
+  ;; make sure node/npm is installed and present in the PATH for debugging
+  (dap-dart-setup))
   
 (use-package flutter
   :after lsp-dart
