@@ -2093,6 +2093,7 @@ https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
 ;; basic package for snippet insertion
 (use-package yasnippet
   :defer 1
+  :defines company-backend
   :custom-face
   ;; make yasnippet fields more standing out
   (yas-field-highlight-face ((t (:background nil :inherit highlight))))
