@@ -430,6 +430,9 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     ;; reset the state cursors for `evil'
     (with-eval-after-load "evil"
       (my//reset-evil-state-cursors))
+    ;; make the `rainbow-delimiters' colors more saturated
+    (with-eval-after-load "rainbow-delimiters"
+      (my//make-rainbow-delimiters-more-colorful))
     ;; change `term-color-white' to gray to make it more readable on the light background
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
@@ -454,6 +457,9 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     ;; we have to manually reset the `hl-line-mode' color to its origin
     (with-eval-after-load "hl-line"
       (set-face-attribute 'hl-line nil :background "#151823"))
+    ;; make the `rainbow-delimiters' colors more saturated
+    (with-eval-after-load "rainbow-delimiters"
+      (my//make-rainbow-delimiters-more-colorful))
     ;; reset the color change from `modus-operandi-theme' for `term-color-white'
     (with-eval-after-load "term"
       (set-face-attribute 'term-color-white nil :foreground "white")))
@@ -2471,26 +2477,16 @@ _N_: previous error _c_: correct word
 
 ;; mark nested parentheses with different colors
 (use-package rainbow-delimiters
-  :commands rainbow-delimiters-mode
-  :custom-face
-  ;; make the color scheme more colorful
-  (rainbow-delimiters-depth-1-face ((t (:foreground "dark orange"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-2-face ((t (:foreground "dark red"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-3-face ((t (:foreground "deep sky blue"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-4-face ((t (:foreground "magenta"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-5-face ((t (:foreground "dim gray"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-6-face ((t (:foreground "dark green"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-7-face ((t (:foreground "firebrick"
-					:weight semi-bold))))
-  (rainbow-delimiters-depth-8-face ((t (:foreground "medium violet red"
-					:weight semi-bold))))
-  :hook ((prog-mode . rainbow-delimiters-mode)))
+  :hook ((prog-mode . rainbow-delimiters-mode))
+  :init
+  (defun my//make-rainbow-delimiters-more-colorful ()
+    "Make the rainbow colors more saturated.
+
+This hack is based on the code from
+https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
+    (dolist (index (number-sequence 1 rainbow-delimiters-max-face-count) nil)
+      (let ((face (intern (format "rainbow-delimiters-depth-%d-face" index))))
+        (cl-callf color-saturate-name (face-foreground face) 50)))))
 
 ;;;* company
 
