@@ -2266,8 +2266,8 @@ _N_: previous error _c_: correct word
   (my/leader-key
     :infix my/infix/spellcheck
     "e" '(hydra-spellcheck/body :which-key "[errors]")
-    "b" '(flyspell-buffer :which-key "check buffer")
-    "r" '(flyspell-region :which-key "check region")
+    "b" '(flyspell-buffer :which-key "buffer")
+    "r" '(flyspell-region :which-key "region")
     "f" '(:ignore t :which-key "Flyspell Modes")
     "ff" '(flyspell-mode :which-key my//flyspell-mode-wk-replacement)
     "fp" '(flyspell-prog-mode :which-key my//flyspell-prog-mode-wk-replacement)))
@@ -2278,7 +2278,7 @@ _N_: previous error _c_: correct word
   :general
   (my/leader-key
     :infix my/infix/spellcheck
-    "w" '(flyspell-correct-at-point :which-key "check word"))
+    "w" '(flyspell-correct-at-point :which-key "word"))
   :config
   ;; guarantee that `ispell' is correctly initialized
   (advice-add 'flyspell-correct-at-point :before 'ispell-set-spellchecker-params))
