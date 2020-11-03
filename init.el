@@ -2465,8 +2465,7 @@ _N_: previous error _c_: correct word
   :custom
   (show-paren-style 'expression)
   :custom-face
-  (show-paren-match-expression ((t (:weight ultra-bold
-				    :inherit warning))))
+  (show-paren-match-expression ((t (:weight ultra-bold :inherit warning))))
   :config
   (show-paren-mode))
 
