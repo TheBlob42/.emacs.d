@@ -342,7 +342,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (defconst my/infix/search "s")
   (defconst my/infix/tabs "t")
   (defconst my/infix/windows "w")
-  (defconst my/infix/text "x")
+  (defconst my/infix/spellcheck "k")
   :config
   ;; declare general definers for the leader
   (general-create-definer my/leader-key
@@ -384,7 +384,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 	  (,my/infix/search "Search")
 	  (,my/infix/tabs "Tabs")
 	  (,my/infix/windows "Windows")
-	  (,my/infix/text "Text")))
+	  (,my/infix/spellcheck "Spellcheck")))
 
   ;;
   ;; declare definers for different `evil' states
@@ -2404,7 +2404,7 @@ _N_: previous
     "j" '(avy-goto-char-timer :which-key "goto char-seq")
     "l" '(avy-goto-line :which-key "goto line")))
 
-;;;* spellchecker
+;;;* spellcheck
 
 ;; emacs handles spell-checking and corrections of words, regions or buffers via the built-in `ispell' package.
 ;; the actual checking is handled by one of three supported external checker programs:
@@ -2422,33 +2422,33 @@ _N_: previous
 			   (shell-command-to-string "locale"))))
 
   (defun my//ispell-local-dict-wk-replacement (entry)
-    "Which key replacement function for current local `ispell' dictionary."
+    "Which key replacement function to show the current local `ispell' dictionary."
     (let ((key (car entry))
 	  (dict (if ispell-local-dictionary
 		  ispell-local-dictionary
 		  (my//get-system-LC_MESSAGES-value))))
-      `(,key . ,(concat "local [" dict "]"))))
+      `(,key . ,(format "local [%s]" dict))))
 
   (defun my//ispell-global-dict-wk-replacement (entry)
-    "Which key replacement function for current global `ispell' dictionary."
+    "Which key replacement function to show the current global `ispell' dictionary."
     (let ((key (car entry))
 	  (dict (if ispell-dictionary
 		  ispell-dictionary
 		  (my//get-system-LC_MESSAGES-value))))
-      `(,key . ,(concat "global [" dict "]"))))
+      `(,key . ,(format "global [%s]" dict))))
 
   (defun my/ispell-change-global-directory ()
-    "Call `ispell-change-dictionary' with prefix arg to change the global `ispell' dictionary."
+    "Call `ispell-change-dictionary' interactively with prefix arg to change the global `ispell' dictionary."
     (interactive)
     (let ((current-prefix-arg '(4)))
       (call-interactively 'ispell-change-dictionary)))
 
   (my/leader-key
-    :infix my/infix/text
-    "c" '(:ignore t :which-key "Spellcheck")
-    "cd" '(:ignore t :which-key "Dictionaries")
-    "cdl" '(ispell-change-dictionary :which-key my//ispell-local-dict-wk-replacement)
-    "cdg" '(my/ispell-change-global-directory :which-key my//ispell-global-dict-wk-replacement)))
+    :infix my/infix/spellcheck
+    "" '(:ignore t :which-key "Spellcheck")
+    "d" '(:ignore t :which-key "Dictionaries")
+    "dl" '(ispell-change-dictionary :which-key my//ispell-local-dict-wk-replacement)
+    "dg" '(my/ispell-change-global-directory :which-key my//ispell-global-dict-wk-replacement)))
 
 ;; `flyspell' enables on-the-fly spell-checking within emacs
 ;; incorrect words will be highlighted as soon as they are completed or as soon as the cursor hits a new word
@@ -2526,21 +2526,21 @@ _N_: previous error _c_: correct word
     ("q" nil))
 
   (my/leader-key
-    :infix my/infix/text
-    "ce" '(hydra-spellcheck/body :which-key "[errors]")
-    "cb" '(flyspell-buffer :which-key "check buffer")
-    "cr" '(flyspell-region :which-key "check region")
-    "cf" '(:ignore t :which-key "Flyspell Modes")
-    "cff" '(flyspell-mode :which-key my//flyspell-mode-wk-replacement)
-    "cfp" '(flyspell-prog-mode :which-key my//flyspell-prog-mode-wk-replacement)))
+    :infix my/infix/spellcheck
+    "e" '(hydra-spellcheck/body :which-key "[errors]")
+    "b" '(flyspell-buffer :which-key "check buffer")
+    "r" '(flyspell-region :which-key "check region")
+    "f" '(:ignore t :which-key "Flyspell Modes")
+    "ff" '(flyspell-mode :which-key my//flyspell-mode-wk-replacement)
+    "fp" '(flyspell-prog-mode :which-key my//flyspell-prog-mode-wk-replacement)))
 
 ;; correct misspelled words with `flyspell' using favorite interface (here: `ivy')
 (use-package flyspell-correct
   :after flyspell
   :general
   (my/leader-key
-    :infix my/infix/text
-    "cw" '(flyspell-correct-at-point :which-key "check word"))
+    :infix my/infix/spellcheck
+    "w" '(flyspell-correct-at-point :which-key "check word"))
   :config
   ;; guarantee that `ispell' is correctly initialized
   (advice-add 'flyspell-correct-at-point :before 'ispell-set-spellchecker-params))
