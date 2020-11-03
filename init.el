@@ -2276,6 +2276,37 @@ _N_: previous
 ;; simple, stable & linear undo/redo with emacs
 (use-package undo-fu)
 
+;; move lines/selected text up and down easily
+(use-package drag-stuff
+  :general
+  ;; drag left/right only for visual state
+  (general-define-key
+   :states 'visual-state
+   "C-S-h" 'drag-stuff-left
+   "C-S-l" 'drag-stuff-right)
+
+  (general-define-key
+   :states '(normal insert visual)
+   "C-S-j" 'drag-stuff-down
+   "C-S-k" 'drag-stuff-up)
+
+  :config (drag-stuff-mode t))
+
+;; jump to text/words/lines
+(use-package avy
+  :general
+  ;; make avy available as VIM operator
+  (general-define-key
+   :states 'operator
+   "gw" 'evil-avy-goto-word-1
+   "gl" 'evil-avy-goto-line)
+
+  (my/leader-key
+    :infix my/infix/jump
+    "w" '(avy-goto-word-1 :which-key "goto word")
+    "j" '(avy-goto-char-timer :which-key "goto char-seq")
+    "l" '(avy-goto-line :which-key "goto line")))
+
 ;;;* spellchecker
 
 ;; emacs handles spell-checking and corrections of words, regions or buffers via the built-in `ispell' package.
@@ -2485,27 +2516,6 @@ _N_: previous error _c_: correct word
   (general-define-key
    :keymaps 'java-mode-map
    [remap c-indent-line-or-region] 'company-indent-or-complete-common))
-
-;;;* move around
-
-;; move lines/selected text up and down easily
-(use-package drag-stuff
-  :general
-  (my/visual-state-keys
-    "C-S-h" 'drag-stuff-left
-    "C-S-l" 'drag-stuff-right)
-  (my/all-states-keys
-    "C-S-j" 'drag-stuff-down
-    "C-S-k" 'drag-stuff-up)
-  :config (drag-stuff-mode t))
-
-;; jump to text/words/lines
-(use-package avy
-  :general
-  (my/leader-key
-    :infix my/infix/jump
-    "j" '(avy-goto-char-timer :which-key "avy timer")
-    "l" '(avy-goto-line :which-key "avy line")))
 
 ;;;* flycheck
 
