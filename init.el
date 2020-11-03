@@ -2179,10 +2179,17 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
   (display-line-numbers-width-start t)
   ;; don't shrink available space to prevent "flickering"
   (display-line-numbers-grow-only t)
+  :init
+  (defun my//display-line-numbers-wk-replacement (entry)
+    "Which key replacement function for `display-line-numbers-mode'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p display-line-numbers-mode)
+	`(,key . "[X] line numbers")
+	`(,key . "[ ] line numbers"))))
   :general
   (my/leader-key
     :infix my/infix/toggle
-    "n" '(display-line-numbers-mode :which-key "line numbers")))
+    "n" '(display-line-numbers-mode :which-key my//display-line-numbers-wk-replacement)))
 
 ;; highlight the current line
 (use-package hl-line
