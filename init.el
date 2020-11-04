@@ -2954,6 +2954,61 @@ _S_: slurp backward
   ;; set default evil state for 'deft' to 'insert' so we can directly start typing
   (evil-set-initial-state 'deft-mode 'insert))
 
+;;;** outline
+
+;; organize source code or text in an org like manner
+(use-package outline
+  :ensure nil
+  :defer t
+  :config
+  (defhydra hydra-outline-movement (:hint nil)
+    "
+^Movement^              ^Show/Hide^        ^Other^
+^^^^^^---------------------------------------------------------
+_j_: goto next          _S_: show all      _TAB_: fold cycle
+_k_: goto previous      _H_: hide all      _z_: center
+_J_: move down          _O_: hide others
+_K_: move up
+^^^^^^---------------------------------------------------------
+[_q_]: quit
+^^^^^^---------------------------------------------------------
+"
+    ("j" outline-next-visible-heading)
+    ("k" outline-previous-visible-heading)
+    ("J" outline-move-subtree-down)
+    ("K" outline-move-subtree-up)
+    ("S" outline-show-all)
+    ("H" (lambda ()
+	     (interactive)
+	     (outline-hide-sublevels 4)))
+    ("O" outline-hide-other)
+    ("TAB" outline-cycle)
+    ("z" evil-scroll-line-to-center)
+    ("q" nil))
+
+  (my/leader-key
+    :infix my/infix/custom
+    :keymaps 'outline-minor-mode-map
+    "l" '(hydra-outline-movement/body :which-key "[outline]")))
+
+;; add some utility functions for 'outline-mode'
+(use-package outline-magic
+  :defer t
+  :config
+  (defun my/outline-cycle-heading ()
+    (interactive)
+    (when (outline-on-heading-p)
+      (outline-cycle)))
+  :general
+  (my/normal-state-keys
+    :keymaps 'outline-minor-mode-map
+    "TAB" 'my/outline-cycle-heading))
+
+;; add outline faces for the 'outline-minor-mode'
+(use-package outline-minor-faces
+  :after outline
+  :hook (outline-minor-mode . outline-minor-faces-add-font-lock-keywords))
+
 ;;;* programming
 
 ;;;** language server protocol (LSP)
@@ -3484,57 +3539,9 @@ Movement      ^^^^^Rows^            ^Columns^
     :keymaps 'dart-mode-map
     "R" '(flutter-run-or-hot-reload :which-key "flutter start/reload")))
 
-;;;* outline
 
-;; organize source code in an org like manner
-(use-package outline
-  :ensure nil
-  :defer t
-  :config
-  (defhydra hydra-outline-movement (:hint nil)
-    "
-^Movement^              ^Show/Hide^        ^Other^
-^^^^^^---------------------------------------------------------
-_j_: next visible       _S_: show all      _TAB_: fold cycle
-_k_: previous visible   _H_: hide all      _z_: center
-                      ^^_O_: hide others
-^^^^^^---------------------------------------------------------
-[_q_]: quit
-^^^^^^---------------------------------------------------------
-"
-    ("j" outline-next-visible-heading)
-    ("k" outline-previous-visible-heading)
-    ("S" outline-show-all)
-    ("H" (lambda ()
-	     (interactive)
-	     (outline-hide-sublevels 4)))
-    ("O" outline-hide-other)
-    ("TAB" outline-cycle)
-    ("z" evil-scroll-line-to-center)
-    ("q" nil))
 
-  (my/leader-key
-    :keymaps 'outline-minor-mode-map
-    "l" '(hydra-outline-movement/body :which-key "[outline]")))
 
-;; add some utility functions for 'outline-mode'
-(use-package outline-magic
-  :defer t
-  :config
-  (defun my/outline-cycle-heading ()
-    (interactive)
-    (when (outline-on-heading-p)
-      (outline-cycle)))
-  :general
-  (my/normal-state-keys
-    :keymaps 'outline-minor-mode-map
-    "TAB" 'my/outline-cycle-heading))
-
-;; add outline faces for the 'outline-minor-mode'
-(use-package outline-minor-faces
-  :after outline
-  :custom-face (outline-minor-0 ((t (:extend nil))))
-  :hook (outline-minor-mode . outline-minor-faces-add-font-lock-keywords))
 
 ;;;* utility functions
 
