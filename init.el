@@ -357,7 +357,6 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   ;; declare general definers for the local leader (current major mode)
   (general-create-definer my/major-mode-leader-key
     :states '(normal visual motion emacs insert)
-    :keymaps 'override
     :major-modes t
     :prefix "SPC m"
     :non-normal-prefix "C-SPC m")
