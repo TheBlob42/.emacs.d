@@ -2632,49 +2632,168 @@ _N_: previous error  _L_: error list
     ("z" evil-scroll-line-to-center)
     ("q" nil :color blue)))
 
-;;;* org mode
+;;;* org
 
-(defvar my-org-notes-dir (my//get-value-from-config "org-roam-dir" "~/org-roam"))
+(defvar my--org-notes-folder  "~/Documents/Org/"
+  "Directory containing ALL org note files.")
+(defvar my--org-journal-folder  "~/Documents/Org/Journal/"
+  "Directory for the `org-journal' files.")
+(defvar my--org-todo-file "~/Documents/Org/GTD/todo.org"
+  "GTD todo file which contains all tasks and projects.")
+(defvar my--org-archive-file "~/Documents/Org/GTD/archive.org"
+  "Archive file for tasks and projects which were done or canceled.")
+(defvar my--org-calendar-file "~/Documents/Org/GTD/calendar.org"
+  "File for repeating appointments (e.g. birthdays) and habits.")
+(defvar my--org-ideas-file "~/Documents/Org/GTD/ideas.org"
+  "Storage file for ideas and 'someday/maybe' projects.")
 
 (use-package org
   :ensure nil
-  :hook ((org-mode . org-hide-block-all)) ; leave all blocks collapsed by default
+  :hook
+  (org-mode . org-hide-block-all)                       ; leave all blocks collapsed by default
+  (org-capture-mode . (lambda nil (evil-insert-state))) ; initial insert-state for `org-capture'
+  :init
+  (defun my/goto-org-todo-file ()
+    "Jump to my GTD todo file."
+    (interactive)
+    (find-file my--org-todo-file))
+
+  (defun my/goto-org-ideas-file ()
+    "Jump to my ideas file."
+    (interactive)
+    (find-file my--org-ideas-file))
+
+  (defun my/goto-org-calendar-file ()
+    "Jump to my calendar file."
+    (interactive)
+    (find-file my--org-calendar-file))
+
+  (defun my/goto-org-archive-file ()
+    "Jump to my archive file."
+    (interactive)
+    (find-file my--org-archive-file))
+
+  (defun my//org-emphasis-markers-wk-replacement (entry)
+    "Which key replacement function for `my/org-toggle-emphasis'."
+    (let ((key (car entry)))
+      (if org-hide-emphasis-markers
+        `(,key . "[ ] emphasis markers")
+        `(,key . "[X] emphasis markers"))))
+
+  (defun my//org-inline-images-wk-replacement (entry)
+    "Which key replacement function for `my/org-toggle-inline-images'."
+    (let ((key (car entry)))
+      (if org-inline-image-overlays
+        `(,key . "[X] inline images")
+        `(,key . "[ ] inline images"))))
+
+  (defun my//org-insert-link-wk-replacement (entry)
+    (let ((key (car entry)))
+      (if prefix-arg
+        `(,key . "link (file)")
+        `(,key . "link (any)"))))
   :custom
-  (org-hide-emphasis-markers t)
-  (org-todo-keywords '((sequence "TODO" "PROCESSING" "WAITING" "|" "DONE" "CANCELED")))
-  ;; refile target all level 1-2 headings in the same file
-  (org-refile-targets '((nil :maxlevel . 2)))
+  (org-blank-before-new-entry '((heading . t)       ; ALWAYS set a blank line before a new heading
+                                (plain-list-item))) ; NEVER set a blank line before a new list item
+  ;;
+  ;; todo keyword configuration
+  ;;
+  (org-todo-keywords '((sequence "TODO(t)" "NEXT(n)" "IN-PROGRESS(p)" "WAITING(w)" "|" "DONE(d)" "CANCELED(c)")))
+  (org-enforce-todo-dependencies t)                 ; to mark a parent task as done all children must be done first
+  (org-log-into-drawer t)                           ; insert state change notes and timestamps into a drawer (defaul: LOGBOOK)
+  (org-log-done 'note)                              ; log the time when a task is marked as done
+  (org-log-redeadline 'note)                        ; log the time when a deadline was changed
+  (org-log-reschedule 'note)                        ; log the time when a schedule was changed
+  ;;
+  ;; agenda configuration
+  ;;
+  (org-agenda-files (list my--org-todo-file
+                          my--org-calendar-file))
+  (org-agenda-todo-list-sublevels nil) ; only show top level todos
+  (org-agenda-custom-commands '(("c" "Custom agenda"
+                                 ((tags "PRIORITY=\"A\""
+                                        ((org-agenda-skip-function
+                                          '(org-agenda-skip-entry-if 'todo 'done))              ; do not show "done" tasks
+                                         (org-agenda-overriding-header "High-priority unfinished tasks:")))
+                                  (agenda "" ((org-agenda-span 'day)))                          ; only show the current day
+                                  (alltodo ""
+                                           ((org-agenda-skip-function
+                                             '(or
+                                               (org-agenda-skip-subtree-if 'regexp "\\[#A\\]")  ; all tasks with priority "A"
+                                               (org-agenda-skip-if nil '(scheduled deadline)))) ; all tasks with a schedule or deadline
+                                            (org-agenda-overriding-header "ALL normal priority tasks:")))))))
+  ;;
+  ;; refile configuration
+  ;;
+  (org-refile-targets '((nil :maxlevel . 9)                 ; same file up to level 9 (should cover "all" headings)
+                        (org-agenda-files     :level . 1)   ; all org-agenda files
+                        (my--org-archive-file :level . 1))) ; the archive file
+  (org-refile-use-outline-path 'file)        ; show file name and all top levels for refile targets
+  (org-outline-path-complete-in-steps nil)   ; complete refile in one step
+  (org-refile-allow-creating-parent-nodes t) ; allow creation of new headings during refile
+  ;;
+  ;; org-capture configuration
+  ;;
+  (org-capture-templates
+   `(("t" "Task" entry (file my--org-todo-file)
+      ,(concat "* %^{Type|TODO|NEXT} %?\n"
+               "  :PROPERTIES:\n"
+               "  :CATEGORY: %^{Category}\n"
+               "  :CREATED: %u\n"
+               "  :END:")
+      :empty-lines 1)
+     ("i" "Idea" entry (file my--org-ideas-file)
+      ,(concat "* %? :idea:\n"
+               "  :PROPERTIES:\n"
+               "  :CATEGORY: %^{Category}\n"
+               "  :END:"))
+     ("s" "Scheduled" entry (file my--org-calendar-file)
+      ,(concat "* %?\n"
+               "  SCHEDULED: %^t\n"
+               "  :PROPERTIES:\n"
+               "  :CATEGORY: %^{Category}\n"
+               "  :END:"))))
+
   :general
-  ;; add 'org-capture' keybinding to the leader-key
   (my/leader-key
-    "C-c" '(org-capture :which-key "org capture"))
+    :infix my/infix/org
+    "a" '(org-agenda :which-key "agenda")
+    "c" '(org-capture :which-key "capture")
+    "T" '(my/goto-org-todo-file :which-key "todos")
+    "I" '(my/goto-org-ideas-file :which-key "ideas")
+    "A" '(my/goto-org-archive-file :which-key "archive")
+    "C" '(my/goto-org-calendar-file :which-key "calendar"))
 
   (my/major-mode-leader-key
     :keymaps '(org-mode-map org-journal-mode-map)
-    :major-modes t
     "" '(:ignore t :which-key "Org")
+    "TAB" '(my/org-show-current-heading-tidily :which-key "narrow")
+    ;; these keybindings are based on the default bindings (C-c C-<key>) of org-mode
     "m" '(org-ctrl-c-ctrl-c :which-key "ctrl-c ctrl-c")
-    "TAB" '(my/org-show-current-heading-tidily :which-key "collapse others")
     "o" '(org-open-at-point :which-key "open at point")
-    "r" '(org-refile :which-key "refile")
+    "w" '(org-refile :which-key "refile")
+    "s" '(org-schedule :which-key "schedule")
+    "d" '(org-deadline :which-key "deadline")
+    "q" '(org-set-tags-command :which-key "set tags")
+    "," '(org-priority :which-key "priority")
+    "t" '(org-todo :which-key "todo")
     ;; Toggles
-    "T" '(:ignore t :which-key "Toggle")
-    "Ti" 'my/org-toggle-inline-images
+    "T" '(:ignore t :which-key "Toggles")
+    "Ti" '(my/org-toggle-inline-images :which-key my//org-inline-images-wk-replacement)
+    "Te" '(my/org-toggle-emphasis :which-key my//org-emphasis-markers-wk-replacement)
     ;; Insert
-    "i" '(:ignore t :which-key "Insert")
-    "ib" '(org-insert-structure-template :which-key "template block")
-    "it" '(counsel-org-tag :which-key "set tags")
-    ;; Links
-    "l" '(:ignore t :which-key "Links")
-    "le" '(hydra-org-links/body :which-key "[edit]")
-    "ll" '(org-insert-link :which-key "link")
-    "li" '(my/insert-internal-org-link :which-key "internal link")
-    "lf" '(my/insert-file-link :which-key "file link")
-    ;; Tables
-    "t" '(:ignore t :which-key "Tables")
-    "tt" '(org-table-create-or-convert-from-region :which-key "table")
-    "tb" '(org-table-blank-field :which-key "blank field")
-    "te" '(hydra-org-table/body :which-key "[edit]")
+    "i" '(:ignore t :which-key "Insert & Edit")
+    "i!" '(org-time-stamp-inactive :which-key "inactive timestamp")
+    "i," '(org-insert-structure-template :which-key "structure template")
+    ;; Insert -> Tables
+    "it" '(:ignore t :which-key "Tables")
+    "ita" '(org-table-align :which-key "align")
+    "itt" '(org-table-create-or-convert-from-region :which-key "table")
+    "ite" '(hydra-org-table/body :which-key "[edit]")
+    ;; Insert -> Links
+    "il" '(:ignore t :which-key "Links")
+    "ile" '(hydra-org-links/body :which-key "[edit]")
+    "ill" '(org-insert-link :which-key my//org-insert-link-wk-replacement)
     ;; Text
     "x" '(:ignore t :which-key "Text")
     "xb" '(my/org-bold :which-key "bold")
@@ -2685,34 +2804,92 @@ _N_: previous error  _L_: error list
     "xv" '(my/org-verbatim :which-key "verbatim")
     "x SPC" '(my/org-clear :which-key "clear"))
   :config
-  ;; log the creation date for a TODO item
-  ;; [src: https://emacs.stackexchange.com/a/35776]
-  (defun my/log-todo-creation-date (&rest _)
-    "Log TODO creation time in the property drawer under the key 'CREATED'."
+  ;; automatically log the creation property for tasks
+  (defun my//log-todo-creation-date (&rest _)
+    "Log TODO creation date as 'CREATED' property.
+For more information see: https://emacs.stackexchange.com/a/35776"
     (when (and (org-get-todo-state)
                (not (org-entry-get nil "CREATED")))
       (org-entry-put nil "CREATED" (format-time-string "[%Y-%m-%d %a]"))))
-  (add-hook 'org-after-todo-state-change-hook #'my/log-todo-creation-date)
 
-  (defhydra hydra-org-table (:hint nil)
-    "
-^Column^            ^Row^               ^HLine^
-^^^^^^^^---------------------------------------------------
-_ch_: insert left   _rj_: insert below  _hj_: insert below
-_cl_: insert right  _rk_: insert above  _hk_: insert above
-_cd_: delete
-^^^^^^^^---------------------------------------------------
-[_q_]: quit
-^^^^^^^^---------------------------------------------------
-"
-    ("ch" my/org-insert-column-left)
-    ("cl" org-table-insert-column)
-    ("cd" org-table-delete-column)
-    ("rj" my/org-insert-row-below)
-    ("rk" org-table-insert-row)
-    ("hj" org-table-insert-hline)
-    ("hk" my/org-insert-hline-above)
-    ("q" nil))
+  (add-hook 'org-after-todo-state-change-hook #'my//log-todo-creation-date)
+
+  ;;
+  ;; utility functions
+  ;;
+
+  (defun my/org-toggle-emphasis ()
+    "Toggle the visibility of the org emphasis markers."
+    (interactive)
+    (setq-local org-hide-emphasis-markers (not org-hide-emphasis-markers))
+    (font-lock-flush))
+
+  (defun my/org-toggle-inline-images ()
+    "Call `org-toggle-inline-images' with prefix arg."
+    (interactive)
+    (org-toggle-inline-images t))
+
+  ;; unfold current entry and close others
+  ;; the source is from stackoverflow:
+  ;; - https://stackoverflow.com/q/25161792
+  (defun my/org-show-current-heading-tidily ()
+    "Unfold current entry and keep other entries closed."
+    (interactive)
+    (if (save-excursion (end-of-line) (outline-invisible-p))
+        ;; if the entry is hidden, unfold it completely
+        (progn (org-show-entry) (outline-show-children))
+      (outline-back-to-heading)
+      (unless (and (bolp) (org-at-heading-p))
+        (org-up-heading-safe)
+        (outline-hide-subtree)
+        (error "Boundary reached"))
+      (org-overview)
+      (org-reveal t)
+      (org-show-entry)
+      (outline-show-children)))
+
+  ;;
+  ;; individual functions for `org-emphasize'
+  ;;
+
+  (defun my/org-bold ()
+    "Emphasize the selected region as bold."
+    (interactive)
+    (org-emphasize ?*))
+
+  (defun my/org-italic ()
+    "Emphasize the selected region as italic."
+    (interactive)
+    (org-emphasize ?/))
+
+  (defun my/org-code ()
+    "Emphasize the selected region as code."
+    (interactive)
+    (org-emphasize ?~))
+
+  (defun my/org-strike-through ()
+    "Emphasize the selected region as strike through."
+    (interactive)
+    (org-emphasize ?+))
+
+  (defun my/org-underline ()
+    "Emphasize the selected region as underlined."
+    (interactive)
+    (org-emphasize ?_))
+
+  (defun my/org-verbatim ()
+    "Emphasize the selected region as verbatim."
+    (interactive)
+    (org-emphasize ?=))
+
+  (defun my/org-clear ()
+    "Clear the selected region."
+    (interactive)
+    (org-emphasize ? ))
+
+  ;;
+  ;; hydra for editing org-links
+  ;;
 
   (defhydra hydra-org-links (:hint nil)
     "
@@ -2731,161 +2908,148 @@ _S_: slurp backward
     ("s" org-link-edit-forward-slurp)
     ("S" org-link-edit-backward-slurp)
     ("q" nil))
-  
-  ;;; ##### functions & variables
+
+  ;;
+  ;; utility functions for tables
+  ;;
+
+  (defhydra hydra-org-table (:hint nil)
+    "
+^Column^            ^Row^               ^HLine^              ^Misc^
+^^^^^^^^---------------------------------------------------------------
+_ch_: insert left   _rj_: insert below  _hj_: insert below   _S_: sort
+_cl_: insert right  _rk_: insert above  _hk_: insert above
+_cd_: delete
+^^^^^^^^---------------------------------------------------------------
+[_q_]: quit
+^^^^^^^^---------------------------------------------------------------
+"
+    ("ch" my/org-insert-column-left)
+    ("cl" org-table-insert-column)
+    ("cd" org-table-delete-column)
+    ("rj" my/org-insert-row-below)
+    ("rk" org-table-insert-row)
+    ("hj" org-table-insert-hline)
+    ("hk" my/org-insert-hline-above)
+    ("S" org-table-sort-lines)
+    ("q" nil))
+
   (defun my/org-insert-column-left ()
     "Insert a new table column left of the current one."
     (interactive)
     (org-table-insert-column)
     (org-table-move-column-left))
-  
+
   (defun my/org-insert-row-below ()
     "Insert a new table row below the current one."
     (interactive)
     (org-table-insert-row t))
-  
+
   (defun my/org-insert-hline-above ()
     "Insert a new table hline above the current row."
     (interactive)
     (org-table-insert-hline)
-    (org-table-move-row-down))
-  
-  (defun my/org-bold ()
-    "Mark the selected region as bold."
-    (interactive)
-    (org-emphasize ?*))
-  
-  (defun my/org-italic ()
-    "Mark the selected region as italic."
-    (interactive)
-    (org-emphasize ?/))
-  
-  (defun my/org-code ()
-    "Mark the selected region as code."
-    (interactive)
-    (org-emphasize ?~))
-  
-  (defun my/org-strike-through ()
-    "Mark the selected region as strike through."
-    (interactive)
-    (org-emphasize ?+))
-  
-  (defun my/org-underline ()
-    "Mark the selected region as underlined."
-    (interactive)
-    (org-emphasize ?_))
-  
-  (defun my/org-verbatim ()
-    "Mark the selected region as verbatim."
-    (interactive)
-    (org-emphasize ?=))
-  
-  (defun my/org-clear ()
-    "Clear the selected region."
-    (interactive)
-    (org-emphasize ? ))
-  
-  (defun my/insert-internal-org-link ()
-    "Insert an internal org link to either a headline or a NAME tag."
-    (interactive)
-    (let* (;; regex to remove all parent headings and org todo keywords (e.g. ".*/(TODO|DONE)( )?")
-	   (todo-regex (concat ".*/\\(" (mapconcat 'identity
-						   (seq-filter 'stringp (apply #'append org-todo-keywords))
-						   "\\|") "\\)?\\( \\)?"))
-	   ;; regex for the NAME tags
-	   (name-regex "#\\+NAME:\\( \\)*")
-	   (headlines (seq-map #'remove-all-text-properties (seq-map #'-first-item (counsel-outline-candidates))))
-	   (names (seq-map #'-first-item (s-match-strings-all
-					  (concat name-regex ".*$")
-					  (buffer-string))))
-	   (target (ivy-read "Destination: " (append headlines names)))
-	   (link-target (replace-regexp-in-string
-			 ;; replace the prefix to get a correct link target
-			 (concat "\\(" todo-regex "\\|" name-regex "\\)") "" target))
-	   (description (read-string "Description: ")))
-      (if (string= "" description)
-	  (insert (concat "[[" link-target "]]"))
-	(insert (concat "[[" link-target "][" description "]]")))))
-  
-  (defun my/insert-file-link ()
-    "Insert an org link to a file."
-    (interactive)
-    (org-insert-link '(4)))
-  
-  (defun my/org-toggle-inline-images ()
-    "Call 'org-toggle-inline-images' with prefix arg."
-    (interactive)
-    (org-toggle-inline-images t))
-  
-  ;; [src: https://stackoverflow.com/q/25161792]
-  (defun my/org-show-current-heading-tidily ()
-    "Show next entry, keeping other entries closed."
-    (interactive)
-    (if (save-excursion (end-of-line) (outline-invisible-p))
-	(progn (org-show-entry) (outline-show-children))
-      (outline-back-to-heading)
-      (unless (and (bolp) (org-at-heading-p))
-	(org-up-heading-safe)
-	(outline-hide-subtree)
-	(error "Boundary reached"))
-      (org-overview)
-      (org-reveal t)
-      (org-show-entry)
-      (outline-show-children))))
+    (org-table-move-row-down)))
+
+;; quick and easy completion of structure templates
+;; prior to Org v9.2 this was done by `org-try-structure-completion'
+;; the full list of possible shortcuts consists of `org-structure-template-alist' and `org-tempo-keywords-alist'
+;;
+;; for example enter "<e" and hit TAB to expand the line to an example block
+(use-package org-tempo
+  :after org
+  :ensure nil)
 
 (use-package evil-org
   :after (org evil)
-  :functions evil-org-agenda-set-keys
-  :hook ((org-mode . evil-org-mode))
+  :defer t
+  :hook ((org-mode . evil-org-mode)
+         (org-agenda-mode . evil-org-mode))
   :config
-  ;;; ##### functions & variables
-  (defun my/org-insert-subheading ()
-    "Insert a subheading and switch to insert mode"
+  ;; this has to be called before all other keybindings, otherwise it could overwrite them
+  (evil-org-set-key-theme '(navigation
+                            additional
+                            textobjects
+                            calendar
+                            return
+                            shift))
+
+  ;; make (evil)org-mode work with `drag-stuff'
+  (when (package-installed-p 'drag-stuff)
+    (defun my/org-drag-stuff-down (&optional arg)
+      "Either drag stuff down or edit a present org-clock-timestap."
+      (interactive "p")
+      (if (and (org-at-clock-log-p)
+               (org-at-timestamp-p 'lax))
+          (org-shiftcontroldown arg)
+        (drag-stuff-down arg)))
+
+    (defun my/org-drag-stuff-up (&optional arg)
+      "Either drag stuff up or edit a present org-clock-timestap."
+      (interactive "p")
+      (if (and (org-at-clock-log-p)
+               (org-at-timestamp-p 'lax))
+          (org-shiftcontrolup arg)
+        (drag-stuff-up arg)))
+
+    (general-define-key
+     :definer 'minor-mode
+     :states 'normal
+     :keymaps 'evil-org-mode
+     "C-S-j" 'my/org-drag-stuff-down
+     "C-S-k" 'my/org-drag-stuff-up))
+
+  ;;
+  ;; some more utility bindings
+  ;;
+
+  (general-define-key
+   :keymaps 'org-mode-map
+   :states 'insert
+   ;; use `evil-org' specific versions for open below/above
+   "M-o" 'evil-org-open-below
+   "M-O" 'evil-org-open-above)
+
+  (defun my/evil-org-insert-subheading ()
+    "Insert a new blank subheading.
+Ensure to not split the current line."
     (interactive)
     (evil-org-append-line 1)
     (org-insert-subheading nil))
 
-  ;;; ##### keybindings
-  ;; this has to be called before all other keybindings, otherwise it could overwrite them
-  (evil-org-set-key-theme '(navigation additional textobjects calendar))
-  (my/normal-state-keys
-    :keymaps 'org-agenda-mode-map
-    "M-l" 'org-agenda-later
-    "M-h" 'org-agenda-earlier)
-  (my/normal-state-keys
-    :keymaps 'evil-org-mode-map
-    "C-S-l" 'org-shiftright
-    "C-S-h" 'org-shiftleft)
-  (my/insert-state-keys
-    :keymaps 'evil-org-mode-map
-    "C-S-l" 'org-shiftright
-    "C-S-h" 'org-shiftleft
-    "M-l" 'org-metaright
-    "M-h" 'org-metaleft
-    "M-k" 'org-metaup
-    "M-j" 'org-metadown
-    "M-o" 'evil-org-open-below
-    "M-O" 'evil-org-open-above)
   (my/major-mode-leader-key
-    :keymaps 'evil-org-mode-map
+    :keymaps 'org-mode-map
     "ih" '(evil-org-org-insert-heading-respect-content-below :which-key "heading")
-    "is" '(my/org-insert-subheading :which-key "subheading"))
+    "is" '(my/evil-org-insert-subheading :which-key "subheading")))
 
-  ;;; ##### configuration
-  (require 'evil-org-agenda)
-  (evil-org-agenda-set-keys))
+;; set up some sane default `evil' bindings for `org-agenda'
+;; this package is part of `evil-org' but needs to be loaded separately
+(use-package evil-org-agenda
+  :after evil-org
+  :ensure nil
+  :config
+  (evil-org-agenda-set-keys)
 
+  ;; add missing bindings to page through weeks
+  (general-define-key
+    :keymaps 'org-agenda-mode-map
+    :states 'motion
+    "l" 'org-agenda-later
+    "h" 'org-agenda-earlier))
+
+;; simple org-mode based journaling mode
 (use-package org-journal
-  ;; carry over all items that do not mark an entry as done
-  ;; either all 'org-todo-keywords' before the "|" entry or all but the last keyword
+  ;; carry over all items that do not emphasize an entry as done
+  ;; either all `org-todo-keywords' before the "|" entry or all but the last keyword
   :custom
-  (org-journal-dir (my//get-value-from-config "org-journal-dir" "~/Documents/journal/"))
+  (org-journal-dir my--org-journal-folder)
+  (org-journal-file-format "%Y%m%d.org") ; add '.org' extension
   (org-journal-carryover-items
    (let ((keywords (cdr (-first-item org-todo-keywords)))) ; extract the keyword strings from the org variable
      (s-join "|" (-map (lambda (x) (concat "TODO=\"" x "\""))
-		       (if (-contains? keywords "|")
-			 (-take-while (-compose 'not (-partial 's-equals? "|")) keywords)
-			 (-butlast keywords))))))
+                       (if (-contains? keywords "|")
+                         (-take-while (-compose 'not (-partial 's-equals? "|")) keywords)
+                         (-butlast keywords))))))
   :general
   (my/leader-key
     "J" '(:ignore t :which-key "Journal")
@@ -2897,7 +3061,7 @@ _S_: slurp backward
     "JJ" '(hydra-journal/body :which-key "navigate"))
   :config
   (defun my/journal-view-current-entry ()
-    "Call 'org-journal-new-entry' with a prefix to not create a new entry"
+    "Call `org-journal-new-entry' with a prefix to not create a new entry"
     (interactive)
     (org-journal-new-entry t))
   (defhydra hydra-journal ()
@@ -2906,53 +3070,38 @@ _S_: slurp backward
     ("N" org-journal-previous-entry "previous entry")
     ("q" nil "quit")))
 
-(use-package org-roam
-  :hook (after-init . org-roam-mode)
-  :custom (org-roam-directory my-org-notes-dir) ; set the directory for 'org-roam' to operate
-  :config
-  ;;; ##### functions & variables
-  ;;; ##### configuration
-  ;;; ##### keybindings
-  (my/leader-key
-    :infix "o"
-    :keymaps 'org-roam-mode-map
-    "" '(:ignore t :which-key "Roam")
-    "o" '(org-roam :which-key "toggle roam buffer")
-    "f" '(org-roam-find-file :which-key "find file")
-    "g" '(org-roam-show-graph :which-key "show graph"))
-  (my/leader-key
-    :infix "o"
-    :keymaps 'org-mode-map
-    "i" '(org-roam-insert :which-key "insert link")))
-
+;; quickly browse, filter and edit plain text notes
 (use-package deft
   :general
   (my/leader-key
-    :infix "o"
-    "s" '(deft :which-key "search in notes (deft)"))
+    :infix my/infix/org
+    "s" '(deft :which-key "search notes"))
   :custom
-  (deft-directory my-org-notes-dir) ; set the directory for 'deft' to operate
-  (deft-extensions '("org"))        ; only consider .org files
-  ;; remove certain elements of org files for the summary
-  (deft-strip-summary-regexp
-    (concat "\\("
-           "[\n\t]"                    ; blank lines
-           "\\|^#\\+[[:upper:]_]+:.*$" ; org-mode metadata
-	   "\\|^- tags :: .*$"         ; org roam tag line
-           "\\)"))
+  (deft-directory my--org-notes-folder)   ; specific the deft directory
+  (deft-recursive t)                      ; also search in sub folders
+  (deft-default-extension "org")          ; create ORG files by default
+  (deft-use-filter-string-for-filename t) ; use the filter string for the filename
+  (deft-auto-save-interval 0)             ; do not auto save files created by deft
   :config
-  ;;; ##### functions & variables
-  ;;; ##### keybindings
-  (my/normal-state-keys
+  ;; make sure `deft' doesn't create filenames which contain spaces
+  (defun my//deft-new-file-named-advice (args)
+    "Filter the passed file name for `deft-new-file-named' by replacing all spaces with '-'."
+    (list (s-replace " " "-" (car args))))
+  (advice-add 'deft-new-file-named :filter-args #'my//deft-new-file-named-advice)
+
+  (general-define-key
     :keymaps 'deft-mode-map
-    "q" 'kill-current-buffer)
-  (my/insert-state-keys
+    :states 'normal
+    "q" 'kill-current-buffer
+    "C-g" 'kill-current-buffer)
+
+  (general-define-key
     :keymaps 'deft-mode-map
+    :states 'insert
     "C-g" 'kill-current-buffer
     "C-j" 'next-line
     "C-k" 'previous-line)
 
-  ;;; ###### configuration
   ;; set default evil state for 'deft' to 'insert' so we can directly start typing
   (evil-set-initial-state 'deft-mode 'insert))
 
