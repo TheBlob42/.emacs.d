@@ -2282,356 +2282,6 @@ _N_: previous error _c_: correct word
 (use-package flyspell-correct-ivy
   :after flyspell-correct)
 
-;;;* miscellaneous
-
-;; a collection of packages which do not fit within another more specific category
-
-;;;** internal
-
-;; built-in packages of emacs
-
-;; a grab-bag of basic emacs commands not specifically related to something else
-(use-package simple
-  :ensure nil
-  :init
-  (defvar my--visual-line-toggle nil
-    "Indicator if the \"visual line mode\" with custom keybindings is enabled for the current buffer.")
-
-  (defun my//visual-line-wk-replacement (entry)
-    "Which key replacement function for the custom `visual-line-mode'."
-    (let ((key (car entry)))
-      (if my--visual-line-toggle
-	`(,key . "[X] visual lines")
-	`(,key . "[ ] visual lines"))))
-
-  (defun my//truncate-lines-wk-replacement (entry)
-    "Which key replacement function for `truncate-lines'."
-    (let ((key (car entry)))
-      (if truncate-lines
-	`(,key . "[X] truncated lines")
-	`(,key . "[ ] truncated lines"))))
-  :general
-  (my/leader-key
-    "u" '(universal-argument :which-key "universal argument"))
-
-  (my/leader-key
-    :infix my/infix/toggle
-    "l" '(my/toggle-visual-line :which-key my//visual-line-wk-replacement)
-    "t" '(toggle-truncate-lines :which-key my//truncate-lines-wk-replacement))
-
-  (my/leader-key
-    :infix my/infix/buffer
-    "a" '(mark-whole-buffer :which-key "select all content")
-    "d" '(kill-current-buffer :which-key "kill")
-    "n" '(my/new-empty-buffer :which-key "new"))
-
-  (general-define-key
-   :states '(normal insert)
-    "C-M-<backspace>" 'delete-indentation
-    "C-M-<backspace>" 'delete-indentation)
-  :config
-  (defun my/new-empty-buffer ()
-    "Create a new empty buffer."
-    (interactive)
-    (let ((buffer (generate-new-buffer "untitled")))
-      (switch-to-buffer buffer)  ; switch current window to new buffer
-      (fundamental-mode)         ; set default major-mode to `fundamental-mode'
-      (font-lock-mode -1)        ; disable `font-lock-mode' to prevent issues with large amounts of text
-      (set-buffer-modified-p t)  ; mark buffer as modified, so we are able to save it as an emtpy file
-      (setq buffer-offer-save t) ; ask if the buffer should be save when quitting emacs
-      buffer))
-
-  (defun my/toggle-visual-line ()
-    "Toggle `visual-line-mode' and set custom keybindings for it."
-    (interactive)
-    (if my--visual-line-toggle
-      ;; deactivate `visual-line-mode'
-      (progn
-	(visual-line-mode -1)
-	(evil-normalize-keymaps))
-      ;; activate `visual-line-mode'
-      (progn
-	(visual-line-mode)
-	(general-define-key
-	 :definer 'minor-mode
-	 :states '(normal motion)
-	 :keymaps 'visual-line-mode
-	 "j" 'evil-next-visual-line
-	 "k" 'evil-previous-visual-line
-	 "<down>" 'evil-next-visual-line
-	 "<up>" 'evil-previous-visual-line)
-	(evil-normalize-keymaps)))
-    (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
-
-;; emacs's built-in help system
-(use-package help
-  :ensure nil
-  ;; focus new help windows when opened
-  :custom (help-window-select t)
-  :config
-  ;; key bindings for the most used help commands
-  (my/leader-key
-    :infix my/infix/help
-    ;; the `counsel' variants highlight interactive functions & customizable variables
-    "f" '(counsel-describe-function :which-key "describe function")
-    "v" '(counsel-describe-variable :which-key "describe variable")
-    "m" '(describe-mode :which-key "describe mode")
-    "k" '(describe-key :which-key "describe key")))
-
-;; visualize blanks (TAB, (HARD) SPACE & NEWLINE)
-(use-package whitespace
-  :ensure nil
-  :init
-  (defun my//whitespace-wk-replacement (entry)
-    "Which key replacement function for `whitespace-mode'."
-    (let ((key (car entry)))
-      (if (bound-and-true-p whitespace-mode)
-	`(,key . "[X] whitespaces")
-	`(,key . "[ ] whitespaces"))))
-  :general
-  (my/leader-key
-    :infix my/infix/toggle
-    "w" '(whitespace-mode :which-key my//whitespace-wk-replacement)))
-
-;; menu for install/remove/upgrade packages
-(use-package package
-  :ensure nil
-  :config
-  (my/leader-key
-    :infix my/infix/custom
-    "p" '(list-packages :which-key "package menu"))
-
-  (my/major-mode-leader-key
-    :keymaps 'package-menu-mode-map
-    "" '(:ignore t :which-key "Package Menu")
-    "f" '(package-menu-filter-by-name :which-key "filter by name")
-    "c" '(package-menu-clear-filter :which-key "clear filters")))
-
-;; display the visible line numbers
-(use-package display-line-numbers
-  :ensure nil
-  :hook ((prog-mode . display-line-numbers-mode))
-  :custom
-  ;; count number of lines for the needed line-number width beforehand
-  (display-line-numbers-width-start t)
-  ;; don't shrink available space to prevent "flickering"
-  (display-line-numbers-grow-only t)
-  :init
-  (defun my//display-line-numbers-wk-replacement (entry)
-    "Which key replacement function for `display-line-numbers-mode'."
-    (let ((key (car entry)))
-      (if (bound-and-true-p display-line-numbers-mode)
-	`(,key . "[X] line numbers")
-	`(,key . "[ ] line numbers"))))
-  :general
-  (my/leader-key
-    :infix my/infix/toggle
-    "n" '(display-line-numbers-mode :which-key my//display-line-numbers-wk-replacement)))
-
-;; highlight the current line
-(use-package hl-line
-  :ensure nil
-  :config
-  ;; highlight the current line by default
-  (global-hl-line-mode)
-
-  (defun my//global-hl-line-wk-replacement (entry)
-    "Which key replacement function for the global hl-line mode."
-    (let ((key (car entry)))
-      (if (bound-and-true-p global-hl-line-mode)
-	`(,key . "[X] line highlighting")
-	`(,key . "[ ] line highlighting"))))
-
-  (my/leader-key
-    :infix my/infix/toggle
-    "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
-
-;; move the mouse cursor out of the way
-(use-package avoid
-  :ensure nil
-  :config (mouse-avoidance-mode 'cat-and-mouse))
-
-;;;** external
-
-;; restart emacs from within emacs
-(use-package restart-emacs
-  :general
-  (my/leader-key
-    :infix my/infix/quit
-    "r" '(restart-emacs :which-key "restart")))
-
-;; quickly jump to symbol occurences in "spacemacs style"
-(use-package highlight-symbol
-  :after hydra
-  :general
-  (my/normal-state-keys "*" 'hydra-symbol/body)
-  :config
-  (defhydra hydra-symbol (:hint nil
-			  :body-pre
-			  (progn
-			    (highlight-symbol)        ; activate symbol highlighting
-			    (global-hl-line-mode -1)) ; deactivate highlighting of the current line
-			  :before-exit
-			  (progn
-			    (highlight-symbol-remove-all) ; remove symbol highlighting
-			    (global-hl-line-mode)))       ; re-activate highlighting of the current line
-    "
-^Navigation^   ^Display^    ^Edit^
-^^^^^^-----------------------------------------
-_n_: next      _z_: center  _r_: query replace
-_N_: previous
-^^^^^^-----------------------------------------
-[_q_]: quit
-^^^^^^-----------------------------------------
-"
-    ("n" highlight-symbol-next)
-    ("N" highlight-symbol-prev)
-    ("z" evil-scroll-line-to-center)
-    ("r" highlight-symbol-query-replace :exit t)
-    ("q" nil)))
-
-;; highlight "TODO" (and other) keywords
-(use-package hl-todo
-  :config
-  (global-hl-todo-mode))
-
-;; only collect garbage when idling
-(use-package gcmh
-  :init (gcmh-mode 1))
-
-;; edit grep buffer and apply those changes to the corresponding file buffer
-;; e.g. very useful in combination with `ivy-occur'
-(use-package wgrep
-  :defer t
-  :config
-  (my/major-mode-leader-key
-    :keymaps 'wgrep-mode-map
-    :major-modes '(nil)
-    "c" '(wgrep-finish-edit :which-key "(wgrep) finish edit")
-    "k" '(wgrep-abort-changes :which-key "(wgrep) cancel edit")))
-
-;; simple, stable & linear undo/redo with emacs
-(use-package undo-fu)
-
-;; move lines/selected text up and down easily
-(use-package drag-stuff
-  :general
-  ;; drag left/right only for visual state
-  (general-define-key
-   :states 'visual-state
-   "C-S-h" 'drag-stuff-left
-   "C-S-l" 'drag-stuff-right)
-
-  (general-define-key
-   :states '(normal insert visual)
-   "C-S-j" 'drag-stuff-down
-   "C-S-k" 'drag-stuff-up)
-
-  :config (drag-stuff-mode t))
-
-;; jump to text/words/lines
-(use-package avy
-  :general
-  ;; make avy available as VIM operator
-  (general-define-key
-   :states 'operator
-   "gw" 'evil-avy-goto-word-1
-   "gl" 'evil-avy-goto-line)
-
-  (my/leader-key
-    :infix my/infix/jump
-    "w" '(avy-goto-word-1 :which-key "goto word")
-    "j" '(avy-goto-char-timer :which-key "goto char-seq")
-    "l" '(avy-goto-line :which-key "goto line")))
-
-;; quickly open a shell buffer from anywhere
-(use-package shell-pop
-  :commands shell-pop
-  :hook (shell-pop-in-after . evil-insert-state)
-  :custom
-  (shell-pop-full-span t)
-  ;; set default shell type to "ansi-term"
-  (shell-pop-shell-type (quote ("ansi-term"
-				"*ansi-term*"
-				(lambda nil (ansi-term shell-pop-term-shell)))))
-  :general (my/leader-key "'" '(shell-pop :which-key "shell")))
-
-;; copy environment variables from your local shell to emacs
-(use-package exec-path-from-shell
-  :defer 3
-  :config
-  (exec-path-from-shell-initialize))
-
-;;;* company
-
-;; autocompletion framework for emacs
-(use-package company
-  :hook ((prog-mode . company-mode)
-	 (ielm-mode . company-mode))
-  :custom
-  (company-idle-delay 0)
-  (company-minimum-prefix-length 1)
-  ;; allows you to keep on typing even if no completion candidate matches
-  (company-require-match nil)
-  :config
-  (general-define-key
-   :keymaps 'company-active-map
-   "C-n" 'evil-complete-next               ; skip company and use evil complete next instead
-   "C-p" 'evil-complete-previous           ; skip company and use evil complete prev instead
-   "<return>" 'company-complete-selection) ; use <return> to complete the completion
-  ;; use <TAB> for activating company
-  (general-define-key
-   :keymaps 'company-mode-map
-   [remap indent-for-tab-command] 'company-indent-or-complete-common)
-  (general-define-key
-   :keymaps 'java-mode-map
-   [remap c-indent-line-or-region] 'company-indent-or-complete-common))
-
-;;;* flycheck
-
-(use-package flycheck
-  :hook ((prog-mode . flycheck-mode))
-  :general
-  (my/leader-key
-    :infix my/infix/toggle
-    "f" '(flycheck-mode :which-key my//flycheck-which-key-replacement))
-  (my/leader-key
-    :keymaps 'flycheck-mode-map
-    "e" '(hydra-flycheck/body :which-key "[errors]"))
-  :init
-  ;; always display the error list at the bottom side of the frame
-  ;; occupying a third of the entire height of the frame
-  ;; source: flycheck docs (PDF)
-  (add-to-list 'display-buffer-alist
-	       `(, (rx bos "*Flycheck errors*" eos)
-		   (display-buffer-reuse-window
-		    display-buffer-in-side-window)
-		   (side . bottom)
-		   (reusable-frames . visible)
-		   (window-height . 0.33)))
-  (defun my//flycheck-which-key-replacement (entry)
-    "Which key replacement function for 'flycheck'."
-    (let ((key (car entry)))
-      (if (bound-and-true-p flycheck-mode)
-	`(,key . "[X] flycheck")
-	`(,key . "[ ] flycheck"))))
-  :config
-  (defhydra hydra-flycheck (:hint nil)
-    "
-^Navigation^         ^Misc^
-^^^^--------------------------------
-_n_: next error      _z_: center
-_N_: previous error  _L_: error list
-^^^^--------------------------------
-[_q_]: quit
-^^^^--------------------------------
-"
-    ("n" flycheck-next-error)
-    ("N" flycheck-previous-error)
-    ("L" flycheck-list-errors :exit t)
-    ("z" evil-scroll-line-to-center)
-    ("q" nil :color blue)))
-
 ;;;* org
 
 (defvar my--org-notes-folder  "~/Documents/Org/"
@@ -3159,6 +2809,356 @@ _K_: move up
 (use-package outline-minor-faces
   :after outline
   :hook (outline-minor-mode . outline-minor-faces-add-font-lock-keywords))
+
+;;;* miscellaneous
+
+;; a collection of packages which do not fit within another more specific category
+
+;;;** internal
+
+;; built-in packages of emacs
+
+;; a grab-bag of basic emacs commands not specifically related to something else
+(use-package simple
+  :ensure nil
+  :init
+  (defvar my--visual-line-toggle nil
+    "Indicator if the \"visual line mode\" with custom keybindings is enabled for the current buffer.")
+
+  (defun my//visual-line-wk-replacement (entry)
+    "Which key replacement function for the custom `visual-line-mode'."
+    (let ((key (car entry)))
+      (if my--visual-line-toggle
+	`(,key . "[X] visual lines")
+	`(,key . "[ ] visual lines"))))
+
+  (defun my//truncate-lines-wk-replacement (entry)
+    "Which key replacement function for `truncate-lines'."
+    (let ((key (car entry)))
+      (if truncate-lines
+	`(,key . "[X] truncated lines")
+	`(,key . "[ ] truncated lines"))))
+  :general
+  (my/leader-key
+    "u" '(universal-argument :which-key "universal argument"))
+
+  (my/leader-key
+    :infix my/infix/toggle
+    "l" '(my/toggle-visual-line :which-key my//visual-line-wk-replacement)
+    "t" '(toggle-truncate-lines :which-key my//truncate-lines-wk-replacement))
+
+  (my/leader-key
+    :infix my/infix/buffer
+    "a" '(mark-whole-buffer :which-key "select all content")
+    "d" '(kill-current-buffer :which-key "kill")
+    "n" '(my/new-empty-buffer :which-key "new"))
+
+  (general-define-key
+   :states '(normal insert)
+    "C-M-<backspace>" 'delete-indentation
+    "C-M-<backspace>" 'delete-indentation)
+  :config
+  (defun my/new-empty-buffer ()
+    "Create a new empty buffer."
+    (interactive)
+    (let ((buffer (generate-new-buffer "untitled")))
+      (switch-to-buffer buffer)  ; switch current window to new buffer
+      (fundamental-mode)         ; set default major-mode to `fundamental-mode'
+      (font-lock-mode -1)        ; disable `font-lock-mode' to prevent issues with large amounts of text
+      (set-buffer-modified-p t)  ; mark buffer as modified, so we are able to save it as an emtpy file
+      (setq buffer-offer-save t) ; ask if the buffer should be save when quitting emacs
+      buffer))
+
+  (defun my/toggle-visual-line ()
+    "Toggle `visual-line-mode' and set custom keybindings for it."
+    (interactive)
+    (if my--visual-line-toggle
+      ;; deactivate `visual-line-mode'
+      (progn
+	(visual-line-mode -1)
+	(evil-normalize-keymaps))
+      ;; activate `visual-line-mode'
+      (progn
+	(visual-line-mode)
+	(general-define-key
+	 :definer 'minor-mode
+	 :states '(normal motion)
+	 :keymaps 'visual-line-mode
+	 "j" 'evil-next-visual-line
+	 "k" 'evil-previous-visual-line
+	 "<down>" 'evil-next-visual-line
+	 "<up>" 'evil-previous-visual-line)
+	(evil-normalize-keymaps)))
+    (setq-local my--visual-line-toggle (not my--visual-line-toggle))))
+
+;; emacs's built-in help system
+(use-package help
+  :ensure nil
+  ;; focus new help windows when opened
+  :custom (help-window-select t)
+  :config
+  ;; key bindings for the most used help commands
+  (my/leader-key
+    :infix my/infix/help
+    ;; the `counsel' variants highlight interactive functions & customizable variables
+    "f" '(counsel-describe-function :which-key "describe function")
+    "v" '(counsel-describe-variable :which-key "describe variable")
+    "m" '(describe-mode :which-key "describe mode")
+    "k" '(describe-key :which-key "describe key")))
+
+;; visualize blanks (TAB, (HARD) SPACE & NEWLINE)
+(use-package whitespace
+  :ensure nil
+  :init
+  (defun my//whitespace-wk-replacement (entry)
+    "Which key replacement function for `whitespace-mode'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p whitespace-mode)
+	`(,key . "[X] whitespaces")
+	`(,key . "[ ] whitespaces"))))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "w" '(whitespace-mode :which-key my//whitespace-wk-replacement)))
+
+;; menu for install/remove/upgrade packages
+(use-package package
+  :ensure nil
+  :config
+  (my/leader-key
+    :infix my/infix/custom
+    "p" '(list-packages :which-key "package menu"))
+
+  (my/major-mode-leader-key
+    :keymaps 'package-menu-mode-map
+    "" '(:ignore t :which-key "Package Menu")
+    "f" '(package-menu-filter-by-name :which-key "filter by name")
+    "c" '(package-menu-clear-filter :which-key "clear filters")))
+
+;; display the visible line numbers
+(use-package display-line-numbers
+  :ensure nil
+  :hook ((prog-mode . display-line-numbers-mode))
+  :custom
+  ;; count number of lines for the needed line-number width beforehand
+  (display-line-numbers-width-start t)
+  ;; don't shrink available space to prevent "flickering"
+  (display-line-numbers-grow-only t)
+  :init
+  (defun my//display-line-numbers-wk-replacement (entry)
+    "Which key replacement function for `display-line-numbers-mode'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p display-line-numbers-mode)
+	`(,key . "[X] line numbers")
+	`(,key . "[ ] line numbers"))))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "n" '(display-line-numbers-mode :which-key my//display-line-numbers-wk-replacement)))
+
+;; highlight the current line
+(use-package hl-line
+  :ensure nil
+  :config
+  ;; highlight the current line by default
+  (global-hl-line-mode)
+
+  (defun my//global-hl-line-wk-replacement (entry)
+    "Which key replacement function for the global hl-line mode."
+    (let ((key (car entry)))
+      (if (bound-and-true-p global-hl-line-mode)
+	`(,key . "[X] line highlighting")
+	`(,key . "[ ] line highlighting"))))
+
+  (my/leader-key
+    :infix my/infix/toggle
+    "H" '(global-hl-line-mode :which-key my//global-hl-line-wk-replacement)))
+
+;; move the mouse cursor out of the way
+(use-package avoid
+  :ensure nil
+  :config (mouse-avoidance-mode 'cat-and-mouse))
+
+;;;** external
+
+;; restart emacs from within emacs
+(use-package restart-emacs
+  :general
+  (my/leader-key
+    :infix my/infix/quit
+    "r" '(restart-emacs :which-key "restart")))
+
+;; quickly jump to symbol occurences in "spacemacs style"
+(use-package highlight-symbol
+  :after hydra
+  :general
+  (my/normal-state-keys "*" 'hydra-symbol/body)
+  :config
+  (defhydra hydra-symbol (:hint nil
+			  :body-pre
+			  (progn
+			    (highlight-symbol)        ; activate symbol highlighting
+			    (global-hl-line-mode -1)) ; deactivate highlighting of the current line
+			  :before-exit
+			  (progn
+			    (highlight-symbol-remove-all) ; remove symbol highlighting
+			    (global-hl-line-mode)))       ; re-activate highlighting of the current line
+    "
+^Navigation^   ^Display^    ^Edit^
+^^^^^^-----------------------------------------
+_n_: next      _z_: center  _r_: query replace
+_N_: previous
+^^^^^^-----------------------------------------
+[_q_]: quit
+^^^^^^-----------------------------------------
+"
+    ("n" highlight-symbol-next)
+    ("N" highlight-symbol-prev)
+    ("z" evil-scroll-line-to-center)
+    ("r" highlight-symbol-query-replace :exit t)
+    ("q" nil)))
+
+;; highlight "TODO" (and other) keywords
+(use-package hl-todo
+  :config
+  (global-hl-todo-mode))
+
+;; only collect garbage when idling
+(use-package gcmh
+  :init (gcmh-mode 1))
+
+;; edit grep buffer and apply those changes to the corresponding file buffer
+;; e.g. very useful in combination with `ivy-occur'
+(use-package wgrep
+  :defer t
+  :config
+  (my/major-mode-leader-key
+    :keymaps 'wgrep-mode-map
+    :major-modes '(nil)
+    "c" '(wgrep-finish-edit :which-key "(wgrep) finish edit")
+    "k" '(wgrep-abort-changes :which-key "(wgrep) cancel edit")))
+
+;; simple, stable & linear undo/redo with emacs
+(use-package undo-fu)
+
+;; move lines/selected text up and down easily
+(use-package drag-stuff
+  :general
+  ;; drag left/right only for visual state
+  (general-define-key
+   :states 'visual-state
+   "C-S-h" 'drag-stuff-left
+   "C-S-l" 'drag-stuff-right)
+
+  (general-define-key
+   :states '(normal insert visual)
+   "C-S-j" 'drag-stuff-down
+   "C-S-k" 'drag-stuff-up)
+
+  :config (drag-stuff-mode t))
+
+;; jump to text/words/lines
+(use-package avy
+  :general
+  ;; make avy available as VIM operator
+  (general-define-key
+   :states 'operator
+   "gw" 'evil-avy-goto-word-1
+   "gl" 'evil-avy-goto-line)
+
+  (my/leader-key
+    :infix my/infix/jump
+    "w" '(avy-goto-word-1 :which-key "goto word")
+    "j" '(avy-goto-char-timer :which-key "goto char-seq")
+    "l" '(avy-goto-line :which-key "goto line")))
+
+;; quickly open a shell buffer from anywhere
+(use-package shell-pop
+  :commands shell-pop
+  :hook (shell-pop-in-after . evil-insert-state)
+  :custom
+  (shell-pop-full-span t)
+  ;; set default shell type to "ansi-term"
+  (shell-pop-shell-type (quote ("ansi-term"
+				"*ansi-term*"
+				(lambda nil (ansi-term shell-pop-term-shell)))))
+  :general (my/leader-key "'" '(shell-pop :which-key "shell")))
+
+;; copy environment variables from your local shell to emacs
+(use-package exec-path-from-shell
+  :defer 3
+  :config
+  (exec-path-from-shell-initialize))
+
+;;;* company
+
+;; autocompletion framework for emacs
+(use-package company
+  :hook ((prog-mode . company-mode)
+	 (ielm-mode . company-mode))
+  :custom
+  (company-idle-delay 0)
+  (company-minimum-prefix-length 1)
+  ;; allows you to keep on typing even if no completion candidate matches
+  (company-require-match nil)
+  :config
+  (general-define-key
+   :keymaps 'company-active-map
+   "C-n" 'evil-complete-next               ; skip company and use evil complete next instead
+   "C-p" 'evil-complete-previous           ; skip company and use evil complete prev instead
+   "<return>" 'company-complete-selection) ; use <return> to complete the completion
+  ;; use <TAB> for activating company
+  (general-define-key
+   :keymaps 'company-mode-map
+   [remap indent-for-tab-command] 'company-indent-or-complete-common)
+  (general-define-key
+   :keymaps 'java-mode-map
+   [remap c-indent-line-or-region] 'company-indent-or-complete-common))
+
+;;;* flycheck
+
+(use-package flycheck
+  :hook ((prog-mode . flycheck-mode))
+  :general
+  (my/leader-key
+    :infix my/infix/toggle
+    "f" '(flycheck-mode :which-key my//flycheck-which-key-replacement))
+  (my/leader-key
+    :keymaps 'flycheck-mode-map
+    "e" '(hydra-flycheck/body :which-key "[errors]"))
+  :init
+  ;; always display the error list at the bottom side of the frame
+  ;; occupying a third of the entire height of the frame
+  ;; source: flycheck docs (PDF)
+  (add-to-list 'display-buffer-alist
+	       `(, (rx bos "*Flycheck errors*" eos)
+		   (display-buffer-reuse-window
+		    display-buffer-in-side-window)
+		   (side . bottom)
+		   (reusable-frames . visible)
+		   (window-height . 0.33)))
+  (defun my//flycheck-which-key-replacement (entry)
+    "Which key replacement function for 'flycheck'."
+    (let ((key (car entry)))
+      (if (bound-and-true-p flycheck-mode)
+	`(,key . "[X] flycheck")
+	`(,key . "[ ] flycheck"))))
+  :config
+  (defhydra hydra-flycheck (:hint nil)
+    "
+^Navigation^         ^Misc^
+^^^^--------------------------------
+_n_: next error      _z_: center
+_N_: previous error  _L_: error list
+^^^^--------------------------------
+[_q_]: quit
+^^^^--------------------------------
+"
+    ("n" flycheck-next-error)
+    ("N" flycheck-previous-error)
+    ("L" flycheck-list-errors :exit t)
+    ("z" evil-scroll-line-to-center)
+    ("q" nil :color blue)))
 
 ;;;* programming
 
