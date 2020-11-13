@@ -423,7 +423,8 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     (load-theme 'modus-operandi t)
     ;; reset powerline faces for light theme
     (with-eval-after-load "spaceline"
-      (set-face-background 'powerline-active1 "gray80")
+      (set-face-background 'powerline-active1 "gray75")
+      (set-face-background 'powerline-active2 (face-background 'modus-theme-subtle-neutral))
       (set-face-background 'powerline-inactive1 "gray87")
       (powerline-reset))
     ;; reset the state cursors for `evil'
@@ -448,6 +449,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
     ;; reset powerline faces for dark theme
     (with-eval-after-load "spaceline"
       (set-face-background 'powerline-active1 "gray30")
+      (set-face-background 'powerline-active2 (face-background 'modus-theme-subtle-neutral))
       (set-face-background 'powerline-inactive1 "gray20")
       (powerline-reset))
     ;; reset the state cursors for `evil'
