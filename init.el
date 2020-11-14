@@ -668,6 +668,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   ;; these two options are set as required by `evil-collection'
   (evil-want-integration t)       ; load 'evil-integration.el' (default)
   (evil-want-keybinding nil)      ; do NOT load 'evil-keybindings.el' as `evil-collection' is used instead
+  (evil-want-C-i-jump nil)        ; remove C-i/TAB jump binding from vim (see: https://github.com/Somelauw/evil-org-mode#common-issues)
 
   ;; use `undo-fu' as the "evil undo system" (since `undo-tree' is known for its errors)
   ;; starting with emacs 28 there is also the already included `undo-redo' function which could be used instead
