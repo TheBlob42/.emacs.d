@@ -1044,7 +1044,9 @@ In this case the source of the relative path is the current buffer or file."
 			  ;; to ensure that the hydra does not interfere with this procedure the `last-command' is set manually before each key press
 			  :pre (setq last-command 'iflipb-next-buffer))
     ""
-    ("TAB" iflipb-next-buffer "backwards")
+    ;; bind <tab> and TAB so `iflipb' does not stop in org buffers
+    ("TAB" iflipb-next-buffer nil)
+    ("<tab>" iflipb-next-buffer "backwards")
     ("<backtab>" iflipb-previous-buffer "forwards")
     ("q" nil "quit")))
 
