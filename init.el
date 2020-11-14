@@ -3094,6 +3094,18 @@ _N_: previous
   :config
   (exec-path-from-shell-initialize))
 
+;; visual popup interface library for emacs
+;; NOTE: needed by `google-translate'
+(use-package popup
+  :defer t)
+
+;; emacs interface for google-translate
+(use-package google-translate
+  :general
+  (my/leader-key
+    :infix my/infix/custom
+    "G" '(google-translate-smooth-translate :which-key "google translate")))
+
 ;;;* company
 
 ;; autocompletion framework for emacs
