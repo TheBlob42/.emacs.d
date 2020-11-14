@@ -129,6 +129,7 @@
 (use-package s)               ; string manipulation
 (use-package dash)            ; modern list api
 (use-package dash-functional) ; function combinators
+(use-package f)               ; modern api to work with files & directories
 
 ;;;** defaults
 
