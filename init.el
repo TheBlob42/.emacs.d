@@ -2652,10 +2652,17 @@ _cd_: delete
 
     (general-define-key
      :definer 'minor-mode
-     :states 'normal
      :keymaps 'evil-org-mode
+     :states '(normal visual)
      "C-S-j" 'my/org-drag-stuff-down
-     "C-S-k" 'my/org-drag-stuff-up))
+     "C-S-k" 'my/org-drag-stuff-up)
+
+    (general-define-key
+     :definer 'minor-mode
+     :keymaps 'evil-org-mode
+     :states 'visual
+     "C-S-h" 'drag-stuff-left
+     "C-S-l" 'drag-stuff-right))
 
   ;;
   ;; some more utility bindings
