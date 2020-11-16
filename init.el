@@ -606,7 +606,11 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   (spaceline-define-segment my//lsp-info
     "Displays the `lsp-mode-line' info string"
     (when (bound-and-true-p lsp-mode)
-      (lsp-mode-line)))
+      (concat "["
+	      (mapconcat #'lsp--workspace-print
+			 lsp--buffer-workspaces
+			 "][")
+	      "]")))
 
   (spaceline-define-segment my//dap-info
     "Icon indicating a present `dap-mode' session"
