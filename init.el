@@ -413,93 +413,35 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 ;; - make it easy to switch between both themes (without the need to touch the configuration)
 ;; - startup emacs with the appropriate theme depending on the current time
 
-;; light theme
-(use-package modus-operandi-theme
+(use-package modus-themes
   :custom
-  (modus-operandi-theme-rainbow-headings t)
-  (modus-operandi-theme-distinct-org-blocks t)
+  (modus-themes-headings '((t . rainbow)))
+  (modus-themes-org-blocks 'grayscale)
+  :hook
+  (modus-themes-after-load-theme . (lambda nil
+				     (powerline-reset)                ; reset spaceline faces
+				     (my//reset-evil-state-cursors))) ; reset custom cursor config
   :config
-  (defun my/load-modus-operandi-theme ()
-    "Load the `modus-operandi-theme' with some slight modifications."
-    (load-theme 'modus-operandi t)
-    ;; reset powerline faces for light theme
-    (with-eval-after-load "spaceline"
-      (set-face-background 'powerline-active1 "gray75")
-      (set-face-background 'powerline-active2 (face-background 'modus-theme-subtle-neutral))
-      (set-face-background 'powerline-inactive1 "gray87")
-      (powerline-reset))
-    ;; reset the state cursors for `evil'
-    (with-eval-after-load "evil"
-      (my//reset-evil-state-cursors))
-    ;; make the `rainbow-delimiters' colors more saturated
-    (with-eval-after-load "rainbow-delimiters"
-      (my//make-rainbow-delimiters-more-colorful))
-    ;; change `term-color-white' to gray to make it more readable on the light background
-    (with-eval-after-load "term"
-      (set-face-attribute 'term-color-white nil :foreground "dark gray"))))
-
-;; dark theme & config
-(use-package modus-vivendi-theme
-  :custom
-  (modus-vivendi-theme-rainbow-headings t)
-  (modus-vivendi-theme-distinct-org-blocks t)
-  :config
-  (defun my/load-modus-vivendi-theme ()
-    "Load the `modus-vivendi-theme' with some slight modifications."
-    (load-theme 'modus-vivendi t)
-    ;; reset powerline faces for dark theme
-    (with-eval-after-load "spaceline"
-      (set-face-background 'powerline-active1 "gray30")
-      (set-face-background 'powerline-active2 (face-background 'modus-theme-subtle-neutral))
-      (set-face-background 'powerline-inactive1 "gray20")
-      (powerline-reset))
-    ;; reset the state cursors for `evil'
-    (with-eval-after-load "evil"
-      (my//reset-evil-state-cursors))
-    ;; we have to manually reset the `hl-line-mode' color to its origin
-    (with-eval-after-load "hl-line"
-      (set-face-attribute 'hl-line nil :background "#151823"))
-    ;; make the `rainbow-delimiters' colors more saturated
-    (with-eval-after-load "rainbow-delimiters"
-      (my//make-rainbow-delimiters-more-colorful))
-    ;; reset the color change from `modus-operandi-theme' for `term-color-white'
-    (with-eval-after-load "term"
-      (set-face-attribute 'term-color-white nil :foreground "white")))
-
-  ;; general theme functionality
-
-  (defvar my--dark-mode-enabled nil
-    "State indicator if the dark mode theme is currently enabled")
-
-  (defun my/toggle-dark-mode ()
-    "Toggle between light and dark theme."
-    (interactive)
-    (if my--dark-mode-enabled
-      (my/load-modus-operandi-theme)
-      (my/load-modus-vivendi-theme))
-    (setq my--dark-mode-enabled (not my--dark-mode-enabled)))
 
   (defun my//dark-mode-wk-replacement (entry)
     "Which key replacement function that shows the currently present state."
     (let ((key (car entry)))
-      (if my--dark-mode-enabled
-	`(,key . "[X] dark mode")
-	`(,key . "[ ] dark mode"))))
+      (pcase (car custom-enabled-themes)
+	('modus-operandi `(,key . "[ ] dark mode"))
+	('modus-vivendi `(,key . "[X] dark mode"))
+	(_ `(,key . "custom theme loaded")))))
 
-  ;; configure a keybinding to switch between light & dark
+  ;; configure a keybinding to switch between light & dark theme
   (my/leader-key
     :infix my/infix/toggle
-    "D" '(my/toggle-dark-mode :which-key my//dark-mode-wk-replacement))
+    "D" '(modus-themes-toggle :which-key my//dark-mode-wk-replacement))
 
   (defun my//load-theme-on-startup ()
     "Checks the current time and loads the appropriate theme (light or dark) for it."
-    (let ((hour (string-to-number
-			 (substring (current-time-string) 11 13))))
+    (let ((hour (string-to-number (substring (current-time-string) 11 13))))
       (if (member hour (number-sequence 7 19))
-	(my/load-modus-operandi-theme)
-	(progn
-	  (setq my--dark-mode-enabled t)
-	  (my/load-modus-vivendi-theme)))))
+	(load-theme 'modus-operandi t)
+	(load-theme 'modus-vivendi t))))
 
   ;; load startup theme depending on the current time
   (my//load-theme-on-startup))
