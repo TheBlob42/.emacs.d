@@ -2769,11 +2769,13 @@ _K_: move up
 
 ;;;* miscellaneous
 
-;; a collection of packages which do not fit within another more specific category
+;; a collection of packages and functions which do not fit within another more specific category
 
-;;;** internal
+;;;** packages
 
-;; built-in packages of emacs
+;; miscellaneous internal and external packages configurations
+
+;;;*** internal
 
 ;; a grab-bag of basic emacs commands not specifically related to something else
 (use-package simple
@@ -2936,7 +2938,7 @@ _K_: move up
   :ensure nil
   :config (mouse-avoidance-mode 'cat-and-mouse))
 
-;;;** external
+;;;*** external
 
 ;; restart emacs from within emacs
 (use-package restart-emacs
@@ -3058,6 +3060,55 @@ _N_: previous
   (my/leader-key
     :infix my/infix/custom
     "G" '(google-translate-smooth-translate :which-key "google translate")))
+
+;;;** functions
+
+;; several different utility functions
+
+(defun my//byte-compile-init-dir ()
+  "Force byte compilation of all .el files in the 'elpa' directory."
+  (interactive)
+  (byte-recompile-directory (concat user-emacs-directory "elpa/") 0))
+
+(defun remove-all-text-properties (s)
+  "Remove all text properties from S."
+  (set-text-properties 0 (length s) nil s)
+  s)
+
+;; functions for interacting with Apache Tomcat
+
+(defun java/run-tomcat ()
+  "Start your local Tomcat instance.
+Read the used 'catalina-path' from the 'config' file (inside your .emacs dir)."
+  (interactive)
+  (let ((catalina-path (my//get-value-from-config "catalina-path")))
+    (comint-send-string
+     (get-buffer-process (shell "*tomcat - run*"))
+     (concat catalina-path "/bin/catalina.sh run\n"))
+    (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
+    (goto-char (point-max)))) ; moves to the end of the buffer in order to see the most recent logs
+
+(defun java/debug-tomcat ()
+  "Start a local Tomcat instance in debug mode.
+Read the used 'catalina-path' from the 'config' file (inside your .emacs dir)
+and read the debug port through user input. Once started we can connect
+to the instance via dap-debug choosing 'Java Attach'."
+  (interactive)
+  (let ((catalina-path (my//get-value-from-config "catalina-path"))
+	(port (read-string "Tomcat Port: ")))
+    (comint-send-string
+     (get-buffer-process (shell "*tomcat - debug*"))
+     (concat "export JPDA_ADDRESS=" port " && "
+             "export JPDA_TRANSPORT=dt_socket && "
+             catalina-path "/bin/catalina.sh jpda run\n"))
+    (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
+    (goto-char (point-max)))) ; moves to the end of the buffer in order to see the most recent logs
+
+(my/leader-key
+  :infix my/infix/custom
+  "t" '(:ignore t :which-key "Tomcat")
+  "tt" '(java/run-tomcat :which-key "run")
+  "td" '(java/debug-tomcat :which-key "debug"))
 
 ;;;* company
 
@@ -3658,50 +3709,6 @@ Movement      ^^^^^Rows^            ^Columns^
   (my/major-mode-leader-key
     :keymaps 'dart-mode-map
     "R" '(flutter-run-or-hot-reload :which-key "flutter start/reload")))
-
-
-
-
-
-;;;* utility functions
-
-(defun java/run-tomcat ()
-  "Start your local Tomcat instance.
-Read the used 'catalina-path' from the 'config' file (inside your .emacs dir)."
-  (interactive)
-  (let ((catalina-path (my//get-value-from-config "catalina-path")))
-    (comint-send-string
-     (get-buffer-process (shell "*tomcat - run*"))
-     (concat catalina-path "/bin/catalina.sh run\n"))
-    (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
-    (goto-char (point-max)))) ; moves to the end of the buffer in order to see the most recent logs
-
-(defun java/debug-tomcat ()
-  "Start a local Tomcat instance in debug mode.
-Read the used 'catalina-path' from the 'config' file (inside your .emacs dir)
-and read the debug port through user input. Once started we can connect
-to the instance via dap-debug choosing 'Java Attach'."
-  (interactive)
-  (let ((catalina-path (my//get-value-from-config "catalina-path"))
-	(port (read-string "Tomcat Port: ")))
-    (comint-send-string
-     (get-buffer-process (shell "*tomcat - debug*"))
-     (concat "export JPDA_ADDRESS=" port " && "
-             "export JPDA_TRANSPORT=dt_socket && "
-             catalina-path "/bin/catalina.sh jpda run\n"))
-    (evil-force-normal-state) ; since we usually just want to watch the logs we switch back to normal state
-    (goto-char (point-max)))) ; moves to the end of the buffer in order to see the most recent logs
-
-(my/leader-key
-  :infix my/infix/custom
-  "t" '(:ignore t :which-key "Tomcat")
-  "tt" '(java/run-tomcat :which-key "run")
-  "td" '(java/debug-tomcat :which-key "debug"))
-
-(defun remove-all-text-properties (s)
-  "Remove all text properties from S."
-  (set-text-properties 0 (length s) nil s)
-  s)
 
 ;;;* the end
 
