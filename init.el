@@ -3054,12 +3054,26 @@ _N_: previous
 (use-package popup
   :defer t)
 
-;; emacs interface for google-translate
+;; this is the package which needs to be installed
+;; in order for `google-translate-smooth-ui' to be available
 (use-package google-translate
+  :defer t)
+
+;; emacs interface for google-translate
+(use-package google-translate-smooth-ui
+  :ensure nil
+  :custom
+  (google-translate-backend-method 'curl)
   :general
   (my/leader-key
     :infix my/infix/custom
-    "G" '(google-translate-smooth-translate :which-key "google translate")))
+    "G" '(google-translate-smooth-translate :which-key "google translate"))
+  :config
+  ;; To fix error: google-translate--search-tkk: Search failed: ",tkk:'"
+  ;; https://github.com/atykhonov/google-translate/issues/52#issuecomment-727920888
+  (defun google-translate--search-tkk ()
+    "Search TKK."
+    (list 430675 2721866130)))
 
 ;;;** functions
 
