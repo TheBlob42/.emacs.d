@@ -448,7 +448,13 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
 	(load-theme 'modus-vivendi t))))
 
   ;; load startup theme depending on the current time
-  (my//load-theme-on-startup))
+  (my//load-theme-on-startup)
+  ;; reset spaceline faces
+  (with-eval-after-load "powerline"
+    (powerline-reset))
+  ;; reset custom cursor config
+  (with-eval-after-load "evil"
+    (my//reset-evil-state-cursors)))
 
 ;;;** modeline
 
