@@ -147,6 +147,10 @@
  delete-by-moving-to-trash t                 ; move deleted files to trash instead of deleting them outright
  load-prefer-newer t)                        ; always load the newest version of an elisp file
 
+(when (>= emacs-major-version 28)
+  ;; automatically generate the natively compiled files for each new .elc
+  (setq comp-deferred-compilation t))
+
 (set-language-environment "UTF-8")          ; default to utf-8 encoding
 (add-to-list 'default-frame-alist
 	     '(fullscreen . maximized))     ; maximize the emacs window on startup
@@ -2937,6 +2941,13 @@ _K_: move up
 (use-package avoid
   :ensure nil
   :config (mouse-avoidance-mode 'cat-and-mouse))
+
+(when (>= emacs-major-version 28)
+  (use-package browse-url
+    :custom
+    ;; always use the "default" browsers for `browse-url-of-dired-file'
+    ;; otherwise emacs tries to load the file into a buffer, which will not work for most non-text file types
+    (browse-url-handlers '((".*" . browse-url-default-browser)))))
 
 ;;;*** external
 
