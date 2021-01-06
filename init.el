@@ -2064,6 +2064,7 @@ https://yoo2080.wordpress.com/2013/09/08/living-with-rainbow-delimiters-mode/"
   ;; TAB should only be used for indentation or completion
   (general-unbind
     :keymaps 'yas-minor-mode-map
+    "TAB"
     "<tab>")
 
   (defun my/toggle-between-company-and-yasnippet ()
