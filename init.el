@@ -717,6 +717,7 @@ It does so without changing the current state and point position."
 			  comint
 			  compile
 			  dired
+			  magit
 			  (package-menu package)
 			  (term term ansi-term multi-term)))
 
@@ -1912,29 +1913,6 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
             (inhibit-message t))
 	(if (y-or-n-p "Create PR? ")
             (browse-url (url-encode-url url)))))))
-
-;; sets up evil keybindings for magit
-(use-package evil-magit
-  :after magit
-  :config
-  ;;
-  ;; keybindings if we just want to switch to `text-mode' (C-t by default)
-  ;;
-
-  (defun my//evil-magit-text-mode-wk-replacement (entry)
-    "Which key replacement function for `evil-magit-toggle-text-mode' which checks if the mode is currently active."
-    (let ((key (car entry)))
-      (if evil-magit-toggle-text-minor-mode
-	`(,key . "[x] text mode")
-	`(,key . "[ ] text mode"))))
-
-  (my/major-mode-leader-key
-    :keymaps '(magit-status-mode-map
-	       magit-revision-mode-map
-	       magit-stash-mode-map)
-    :major-modes 'text-mode
-    "" '(:ignore t :which-key "Magit")
-    "t" '(evil-magit-toggle-text-mode :which-key my//evil-magit-text-mode-wk-replacement)))
 
 ;; browse corresponding page on github/gitlab/bitbucket/etc. from an emacs buffer
 ;; this works with several buffer types like:
