@@ -14,6 +14,9 @@
 
 ;; Execute Gradle Wrapper tasks of your projects from within Emacs with ease
 
+;; call `gradlew-execute-task' to enter a task manually and execute it
+;; call `gradlew-execute-task-from-list' to choose a task from all available tasks (of the current project) for execution
+
 ;;; Code:
 
 (require 's)
@@ -168,11 +171,16 @@ If there are multiple candidates, present a seletion via `completing-read'."
 	 (gw-arg-string (when args (concat " " (s-join " " args)))))
     (gradlew-execute-task gw-path (concat gw-task gw-arg-string))))
 
+(transient-define-suffix gradlew-transient--task-from-list-suffix (&optional _)
+  "Transient suffix for `gradlew-transient' which calls `gradlew-execute-task-from-list'
+with a prefix argument, so that the transient menu gets again called afterwards."
+  (interactive)
+  (gradlew-execute-task-from-list t))
+
 ;;
 ;; gradlew transient
 ;;
 
-;;;###autoload
 (transient-define-prefix gradlew-transient (gw-path gw-task)
   "The main entry point to configure and execute any Gradlew task."
   ["Debugging Options"
@@ -191,9 +199,9 @@ If there are multiple candidates, present a seletion via `completing-read'."
    (7 "--lc" gradlew-transient--console-output-type)
    (7 "--lw" gradlew-transient--warning-mode)]
   ["Daemon options"
-   (8 "--dd" "Use Gradle Daemon (default)" "--daemon")
-   (8 "--dn" "Do not use the Gradle Daemon" "--no-daemon")
-   (8 "--df" "Start Daemon in a foreground process" "--foreground")]
+   (8 "--md" "Use Gradle Daemon (default)" "--daemon")
+   (8 "--mn" "Do not use the Gradle Daemon" "--no-daemon")
+   (8 "--mf" "Start Daemon in a foreground process" "--foreground")]
   ["Execution options"
    (5 "--eo" "Operating without network access" "--offline")
    (3 "--er" "Refresh the state of dependencies" "--refresh-dependencies")
@@ -209,7 +217,7 @@ If there are multiple candidates, present a seletion via `completing-read'."
    (4 "--Dja" gradlew-transient--jvm-arguments)
    (5 "--Djh" gradlew-transient--java-home)]
   ["Tasks"
-   ("L" "Task list" gradlew-execute-task-from-list)
+   ("L" "Task list"  gradlew-transient--task-from-list-suffix)
    ("O" "Other task" gradlew-transient)]
   ["Execution"
    ;; the description here is just a placeholder and will be
@@ -236,17 +244,20 @@ Uses `transient-suffix-put' in order to set the description of
 
 ;;;###autoload
 (defun gradlew-execute-task (gw-path gw-task)
-  "Execute a Gradlew task (GW-TASK) via the Gradlew script found at GW-PATH."
+  "Execute a Gradlew task (GW-TASK) via the Gradlew script found at GW-PATH.
+With a prefix argument this calls the `gradlew-transient' afterwards for additional configuration."
   (interactive (list (gradlew--find-script-dir-path)
 		     (read-string gradlew//task-prompt-prefix)))
-  (let ((command (format "cd %s && ./%s %s\n" gw-path gradlew/script-name gw-task))
-	(shell-buffer-name (format "*gw:%s:%s*" (projectile-project-name) gw-task)))
-    (comint-send-string (get-buffer-process (shell shell-buffer-name)) command)
-    ;; moves to the end of the buffer in order to see the most recent logs
-    (goto-char (point-max))
-    ;; call post-dispatch-fn if present
-    (when gradlew/post-dispatch-fn
-      (funcall gradlew/post-dispatch-fn))))
+  (if current-prefix-arg
+      (gradlew-transient gw-path gw-task)
+    (let ((command (format "cd %s && ./%s %s\n" gw-path gradlew/script-name gw-task))
+	  (shell-buffer-name (format "*gw:%s:%s*" (projectile-project-name) gw-task)))
+      (comint-send-string (get-buffer-process (shell shell-buffer-name)) command)
+      ;; moves to the end of the buffer in order to see the most recent logs
+      (goto-char (point-max))
+      ;; call 'post-dispatch-fn' if present
+      (when gradlew/post-dispatch-fn
+	(funcall gradlew/post-dispatch-fn)))))
 
 ;;;###autoload
 (defun gradlew-execute-task-from-list (&optional arg)
@@ -257,11 +268,14 @@ This function will parse the output of \"./gradlew tasks --all\" into
 stored in `gradlew//cached-task-list' so repeated calls can reuse those
 quickly.
 
-With a given prefix ARG one can force the reload of the saved task list."
+With a numeric prefix ARG one can force the reload of the saved task list.
+
+With any prefix ARG, call the `gradlew-transient' after the selection for
+further task configuration and parameters."
   (interactive "P")
   (let ((gw-path (gradlew--find-script-dir-path))
 	(current-project-symbol (intern (projectile-project-root))))
-    (when (or arg                                                  ; prefix arg provided
+    (when (or (numberp arg)                                 ; numeric prefix arg provided
 	      (not (plist-member gradlew//cached-task-list  ; no tasks saved yet
 				 current-project-symbol)))
       ;; (re)load and parse the Gradle Wrapper task list
@@ -289,7 +303,10 @@ With a given prefix ARG one can force the reload of the saved task list."
 			     (completing-read "Select task: " (plist-get gradlew//cached-task-list
 									 current-project-symbol))))))
       ;; execute the selected Gradle Wrapper task
-      (gradlew-transient gw-path gw-task))))
+      ;; with a prefix arg call `gradlew-transient' for more configuration options
+      (if arg
+	(gradlew-transient gw-path gw-task)
+	(gradlew-execute-task gw-path gw-task)))))
 
 (provide 'gradlew)
 

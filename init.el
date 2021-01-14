@@ -3608,15 +3608,27 @@ Movement      ^^^^^Rows^            ^Columns^
   (defun my//gradlew-execute-task-from-list-wk-replacement (entry)
     "Which key replacement function for `gradlew-execute-task-from-list' which checks for current prefix arg."
     (let ((key (car entry)))
+      (cond
+       ((and prefix-arg (numberp prefix-arg))     ; numeric prefix arg
+	`(,key . "task list (refresh & config)"))
+       (prefix-arg                                ; non-numeric prefix arg
+	`(,key . "task list (cache & config)"))
+       (t                                         ; no prefix arg
+	`(,key . "task list (cache)")))))
+
+  (defun my//gradlew-execute-task-wk-replacement (entry)
+    "Which key replacement function for `gradlew-execute-task' which checks for current prefix arg."
+    (let ((key (car entry)))
       (if prefix-arg
-	`(,key . "task list (refresh)")
-	`(,key . "task list (cache)"))))
+	`(,key . "execute task (config)")
+	`(,key . "execute task"))))
+
   :general
   (my/leader-key
     :infix my/infix/custom
     "g" '(:ignore t :which-key "Gradlew")
     "gl" '(gradlew-execute-task-from-list :which-key my//gradlew-execute-task-from-list-wk-replacement)
-    "gx" '(gradlew-transient :which-key "execute task")))
+    "gx" '(gradlew-execute-task :which-key my//gradlew-execute-task-wk-replacement)))
 
 
 ;;;** clojure
