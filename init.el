@@ -149,6 +149,7 @@
 
 (when (>= emacs-major-version 28)
   ;; automatically generate the natively compiled files for each new .elc
+  (defvar comp-deferred-compilation)
   (setq comp-deferred-compilation t))
 
 (set-language-environment "UTF-8")          ; default to utf-8 encoding
@@ -324,6 +325,7 @@ If DEFAULT is passed it will be evaled and returned in the case of an error (for
   :custom
   (which-key-idle-delay 0.3)
   (which-key-sort-order 'which-key-prefix-then-key-order)
+  (which-key-max-description-length 30)
   :config (which-key-mode 1))
 
 ;; more convenient key definitions in emacs
