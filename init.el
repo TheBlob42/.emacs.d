@@ -1980,10 +1980,16 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
   (defun my//counsel-projectile-projectile-dired (_)
     "Wrapper around `projectile-dired' so it can be used as an alternate action for `counsel-projectile'."
     (projectile-dired))
+  ;; search project from withing counsel completion
+  (defun my//counsel-projectile-counsel-projectile-ag (_)
+    "Wrapper around `counsel-projectile-ag' so it can be used as an alternate action for `counsel-projectile'."
+    (counsel-projectile-ag))
   (ivy-add-actions 'counsel-projectile
-		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")
+		     ("s" my//counsel-projectile-counsel-projectile-ag "search project")))
   (ivy-add-actions 'counsel-projectile-find-file
-		   '(("d" my//counsel-projectile-projectile-dired "dired project root")))
+		   '(("d" my//counsel-projectile-projectile-dired "dired project root")
+		     ("s" my//counsel-projectile-counsel-projectile-ag "search project")))
 
   (counsel-projectile-mode))
 
