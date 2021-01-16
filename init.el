@@ -2670,6 +2670,10 @@ Ensure to not split the current line."
 
 ;; quickly browse, filter and edit plain text notes
 (use-package deft
+  :init
+  ;; create ORG files by default
+  ;; (`deft-default-extension' is not a custom variable)
+  (setq deft-default-extension "org")
   :general
   (my/leader-key
     :infix my/infix/org
@@ -2677,7 +2681,6 @@ Ensure to not split the current line."
   :custom
   (deft-directory my--org-notes-folder)   ; specific the deft directory
   (deft-recursive t)                      ; also search in sub folders
-  (deft-default-extension "org")          ; create ORG files by default
   (deft-use-filter-string-for-filename t) ; use the filter string for the filename
   (deft-auto-save-interval 0)             ; do not auto save files created by deft
   :config
