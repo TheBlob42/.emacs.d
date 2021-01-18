@@ -6,10 +6,10 @@
 ;;         Marshall T. Vandegrift <llasram@gmail.com>
 ;; Maintainer: Vasilij Schneidermann <mail@vasilij.de>
 ;; Package-Requires: ((emacs "24.1"))
-;; Package-Version: 20200518.914
-;; Package-Commit: 34648f2502f52f4744d62758fa381fa35db1da49
+;; Package-Version: 20201109.1026
+;; Package-Commit: fc5e1c58f94472944c4aa838f00f6adcac6fa992
 ;; Keywords: data yaml
-;; Version: 0.0.14
+;; Version: 0.0.15
 
 ;; This file is not part of Emacs
 
@@ -119,7 +119,7 @@ that key is pressed to begin a block literal."
 
 ;; Constants
 
-(defconst yaml-mode-version "0.0.14" "Version of `yaml-mode'.")
+(defconst yaml-mode-version "0.0.15" "Version of `yaml-mode'.")
 
 (defconst yaml-blank-line-re "^ *$"
   "Regexp matching a line containing only (valid) whitespace.")
@@ -153,7 +153,7 @@ that key is pressed to begin a block literal."
   "Regexp indicating the beginning of a scalar context.")
 
 (defconst yaml-nested-map-re
-  (concat "[^#]*: *\\(?:&.*\\|{ *\\|" yaml-tag-re " *\\)?$")
+  (concat "[^#\n]*: *\\(?:&.*\\|{ *\\|" yaml-tag-re " *\\)?$")
   "Regexp matching a line beginning a YAML nested structure.")
 
 (defconst yaml-block-literal-base-re " *[>|][-+0-9]* *\\(?:\n\\|\\'\\)"
@@ -324,6 +324,8 @@ artificially limited to the value of
           (unless (looking-at yaml-blank-line-re)
             (setq min-level (min min-level (current-indentation))))
           (forward-line -1))
+        (when (looking-at-p " *- ")
+          (setq min-level (- min-level 2)))
         (cond
          ((and (< (current-indentation) min-level)
                (looking-at yaml-block-literal-re))

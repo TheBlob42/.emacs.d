@@ -41,11 +41,11 @@ function MATCH and the `ws-response-header' convenience
 function.
 
   (ws-start
-   '(((lambda (_) t) .
-      (lambda (proc request)
-        (ws-response-header proc 200 '(\"Content-type\" . \"text/plain\"))
-        (process-send-string proc \"hello world\")
-        t)))
+   `(((lambda (_) t) .
+      (lambda (request)
+        (with-slots ((proc process)) request
+          (ws-response-header proc 200 '(\"Content-Type\" . \"text/plain\"))
+          (process-send-string proc \"hello world\")))))
    8080)
 
 \(fn HANDLERS PORT &optional LOG-BUFFER &rest NETWORK-ARGS)" nil nil)
