@@ -3317,15 +3317,9 @@ You can pass in ADDITIONAL-BINDINGS to add mode specific behavior or to overwrit
 ;; debugging utility mode
 (use-package dap-mode
   :after lsp-mode
-  ;; 'goto-address-mode' enables mouse clicks on links shown to
-  ;; open them in the browser (very convenient for redirect URLs)
-  ;; [src: https://emacs.stackexchange.com/a/27100]
-  :hook ((dap-server-log-mode . (lambda () (goto-address-mode 1))))
+  ;; `goto-address-mode' fontifies URLs and makes the clickable with the mouse
+  :hook ((dap-server-log-mode . goto-address-mode))
   :config
-  (my/normal-state-keys
-    :keymaps 'dap-server-log-mode-map
-    "<mouse-1>" 'browse-url-at-mouse
-    "gx" 'browse-url-at-point)
   (dap-mode t)
   (dap-ui-mode t))
 
