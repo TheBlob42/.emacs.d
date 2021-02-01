@@ -2945,6 +2945,19 @@ _K_: move up
     ;; otherwise emacs tries to load the file into a buffer, which will not work for most non-text file types
     (browse-url-handlers '((".*" . browse-url-default-browser)))))
 
+(use-package scroll-lock
+  :ensure nil
+  :general
+  (my/leader-key
+    :infix my/infix/custom
+    "S" '(hydra-scroll-lock/body :which-key "[scroll lock]"))
+  :config
+  (defhydra hydra-scroll-lock (:body-pre (scroll-lock-mode)
+			       :post (scroll-lock-mode -1))
+    "Scroll up/down without moving the cursor"
+    ("j" scroll-up-line "down")
+    ("k" scroll-down-line "up")))
+
 ;;;*** external
 
 ;; restart emacs from within emacs
