@@ -3109,6 +3109,19 @@ _N_: previous
   (set-text-properties 0 (length s) nil s)
   s)
 
+(defun my/toggle-scratch-buffer ()
+  "Switch to the *scratch* buffer.
+If currently in the *scratch* buffer switch to the last visited buffer instead.
+If the *scratch* buffer was killed, create a new one."
+  (interactive)
+  (let ((scratch-buffer (get-buffer "*scratch*")))
+    (if (eq (current-buffer) scratch-buffer)
+	(switch-to-buffer nil)
+      (switch-to-buffer "*scratch*"))))
+
+(my/leader-key
+  ";" '(my/toggle-scratch-buffer :which-key "scratch"))
+
 ;; functions for interacting with Apache Tomcat
 
 (defun java/run-tomcat ()
