@@ -3095,6 +3095,12 @@ _N_: previous
     "Search TKK."
     (list 430675 2721866130)))
 
+(use-package uuidgen
+  :general
+  (my/leader-key
+    :infix my/infix/insert
+    "u" '(uuidgen :which-key "UUID")))
+
 ;;;** functions
 
 ;; several different utility functions
