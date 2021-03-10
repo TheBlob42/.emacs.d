@@ -1617,6 +1617,12 @@ This function is inspired from `dired-sidebar-revert' but adopted for the usage 
     (dired-do-copy)
     (my/dired-revert))
 
+  (defun my/dired-do-flagged-delete ()
+    "Replacement function for `dired-do-flagged-delete' which does revert the buffer afterwards"
+    (interactive)
+    (dired-do-flagged-delete)
+    (my/dired-revert))
+
   (defun my/dired-do-delete ()
     "Replacement function for `dired-do-delete' which does revert the buffer afterwards."
     (interactive)
@@ -1639,6 +1645,7 @@ This function is inspired from `dired-sidebar-revert' but adopted for the usage 
     :keymaps 'dired-mode-map
     [remap dired-do-copy] 'my/dired-do-copy
     [remap dired-do-delete] 'my/dired-do-delete
+    [remap dired-do-flagged-delete] 'my/dired-do-flagged-delete
     [remap dired-do-rename] 'my/dired-do-rename
     [remap dired-create-directory] 'my/dired-create-directory)
 
