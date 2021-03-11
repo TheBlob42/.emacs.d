@@ -1593,6 +1593,16 @@ The code was \"inspired\" from this config: https://ladicle.com/post/config/"
   ;; unbind SPC to make sure that our prefixes for `my/major-mode-leader-key' work correctly
   (general-unbind 'normal dired-mode-map "SPC")
 
+  (defun my/dired-copy-filename-as-kill (&optional arg)
+    "Replacement function for `dired-copy-filename-as-kill' which also copies the result to `my//evil-yank-default-register'."
+    (interactive "P")
+    (dired-copy-filename-as-kill arg)
+    (evil-set-register my//evil-yank-default-register (evil-get-register ?\")))
+
+  (general-define-key
+   :keymaps 'dired-mode-map
+   [remap dired-copy-filename-as-kill] 'my/dired-copy-filename-as-kill)
+
   ;; `revert-buffer' and `dired-revert' do not always keep the current window position
   ;; to avoid uncontrollable changes of the current position we remap it to our own custom function
   (defun my/dired-revert (&rest _)
@@ -1691,17 +1701,17 @@ This function respects the current (subtree) directory."
   (defhydra my//hydra/dired (:hint nil)
     "
 ^Navigation^    ^Create^            ^Mark^                  ^Commands^        ^Open^                      ^Misc^
-^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^-------------------
 _j_: next line  ___: new file       _m_:  mark              _C_: copy         _RET_:   open               _i_: wdired
 _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S-RET_: open other window  _=_: diff
-^ ^             ^ ^                 _U_:  unmark            _M_: chmod        _W_:     open default
+^ ^             ^ ^                 _U_:  unmark            _M_: chmod        _W_:     open default       _Y_: copy filename(s)
 ^ ^             ^ ^                 _*/_: mark directories  _R_: rename
 ^ ^             ^ ^                 _*%_: mark files regex  _X_: shell cmd
 ^ ^             ^ ^                 _*t_: toggle marks      _Z_: compress
 ^ ^             ^ ^                 ^ ^                     _c_: compress to
-^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^-------------------
 [_q_]: quit
-^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^---------
+^-^-------------^-^-----------------^-^---------------------^-^---------------^-^-------------------------^-^-------------------
 "
     ;; navigation
     ("j" dired-next-line)
@@ -1731,6 +1741,7 @@ _k_: prev line  _+_: new directory  _u_:  unmark            _D_: delete       _S
     ;; misc
     ("i" dired-toggle-read-only)
     ("=" dired-diff)
+    ("Y" dired-copy-filename-as-kill)
     ("q" nil)))
 
 ;; make the dired buffer editable for renaming files and folders
