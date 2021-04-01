@@ -2400,6 +2400,7 @@ _N_: previous error _c_: correct word
     "i" '(:ignore t :which-key "Insert & Edit")
     "i!" '(org-time-stamp-inactive :which-key "inactive timestamp")
     "i," '(org-insert-structure-template :which-key "structure template")
+    "in" '(my/org-insert-name-property :which-key "#+NAME property")
     ;; Insert -> Tables
     "it" '(:ignore t :which-key "Tables")
     "ita" '(org-table-align :which-key "align")
@@ -2462,6 +2463,13 @@ For more information see: https://emacs.stackexchange.com/a/35776"
       (org-reveal t)
       (org-show-entry)
       (outline-show-children)))
+
+  (defun my/org-insert-name-property ()
+    "Insert a '#+NAME:' property at the current point."
+    (interactive)
+    (insert "#+NAME: ")
+    (indent-for-tab-command)
+    (evil-insert-state))
 
   ;;
   ;; individual functions for `org-emphasize'
